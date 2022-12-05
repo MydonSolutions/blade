@@ -104,7 +104,7 @@ static const Result Copy2D(VectorImpl<DT, Dims>& dst,
     }
 
     if (dst.size_bytes() < (dstPitch * height)) {
-        BL_FATAL("Destination's size is surpassed by {} rows of {} ({} vs {}).",
+        BL_FATAL("Destination's size is exceeded by {} rows of {} ({} vs {}).",
                 height, dstPitch, dst.size_bytes(), dstPitch * height);
         return Result::ASSERTION_ERROR;
     }
@@ -116,7 +116,7 @@ static const Result Copy2D(VectorImpl<DT, Dims>& dst,
     }
 
     if (src.size_bytes() < (srcPitch * height)) {
-        BL_FATAL("Source's size is surpassed by {} rows of {} ({} vs {}).",
+        BL_FATAL("Source's size is exceeded by {} rows of {} ({} vs {}).",
                 height, srcPitch, src.size_bytes(), srcPitch * height);
         return Result::ASSERTION_ERROR;
     }
