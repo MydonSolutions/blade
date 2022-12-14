@@ -22,6 +22,7 @@
 
 // ATA Pipelines
 #mesondefine BLADE_PIPELINE_ATA_MODE_B
+#mesondefine BLADE_PIPELINE_ATA_MODE_BS
 
 // VLA Pipelines
 #mesondefine BLADE_PIPELINE_VLA_MODE_B

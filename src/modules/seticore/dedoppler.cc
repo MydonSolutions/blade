@@ -16,7 +16,9 @@ Dedoppler::Dedoppler(const Config& config, const Input& input)
             1e-6 * (this->config.observationBandwidthHz / input.buf.dims().numberOfFrequencyChannels()),
             1.0/(this->config.observationBandwidthHz / input.buf.dims().numberOfFrequencyChannels()),
             config.mitigateDcSpike
-          ) {}
+          ) {
+    BL_INFO("Dimensions [A, F, T, P]: {} -> {}", this->input.buf.dims(), "N/A");
+}
 
 const Result Dedoppler::process(const cudaStream_t& stream) {
     const auto inputDims = this->input.buf.dims();
@@ -30,11 +32,13 @@ const Result Dedoppler::process(const cudaStream_t& stream) {
                 filterbankBuffer,
                 beam,
                 channel,
-                this->config.maximumDriftrate,
-                this->config.minimumDriftrate,
+                this->config.maximumDriftRate,
+                this->config.minimumDriftRate,
                 this->config.snrThreshold,
                 &local_hits
             );
+
+            BL_INFO("Dedoppler Search Hits: {}", local_hits.size());
         }
     }
     

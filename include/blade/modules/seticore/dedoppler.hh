@@ -6,6 +6,8 @@
 
 #include "dedoppler.h"
 #include "filterbank_buffer.h"
+#include "hit_file_writer.h"
+#include "hit_recorder.h"
 
 namespace Blade::Modules::Seticore {
 
@@ -16,8 +18,8 @@ class BLADE_API Dedoppler : public Module {
     struct Config {
         BOOL mitigateDcSpike;
         F64 observationBandwidthHz;
-        F64 minimumDriftrate = 0.0;
-        F64 maximumDriftrate;
+        F64 minimumDriftRate = 0.0;
+        F64 maximumDriftRate;
         F64 snrThreshold;
 
         U64 blockSize = 512;
@@ -30,7 +32,7 @@ class BLADE_API Dedoppler : public Module {
     // Input 
 
     struct Input {
-        const ArrayTensor<Device::CPU, F32>& buf;
+        const ArrayTensor<Device::CUDA, F32>& buf;
     };
 
     // Output
@@ -51,6 +53,8 @@ class BLADE_API Dedoppler : public Module {
     Output output;
 
     Dedopplerer dedopplerer;
+    unique_ptr<HitFileWriter> hit_recorder;
+    FilterbankMetadata metadata;
 };
 
 } // namespace Blade::Modules::Seticore
