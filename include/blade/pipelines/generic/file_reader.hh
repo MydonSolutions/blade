@@ -37,6 +37,10 @@ class BLADE_API FileReader : public Pipeline {
         return guppi->getObservationFrequency();
     }
 
+    constexpr const F64 getSubBandCenterFrequency() const {
+        return guppi->getSubBandCenterFrequency();
+    }
+
     constexpr const F64 getChannelBandwidth() const {
         return guppi->getChannelBandwidth();
     }
