@@ -16,11 +16,15 @@
 The ATA recorded a pair of RAW stems, one with phase center on Mars and another offset from Mars (+0.1 hours in Right-Ascension, and +0.001 degrees in Declination). The beamforming of these is qualitatively indicative of effective beamforming.
 
 Retrieve the data
+```
 rsync -avW rsync://blpd18.ssl.berkeley.edu/datax/guppi_59856_57567_103605834_mars_0001.bfr5 .
 rsync -avW rsync://blpd18.ssl.berkeley.edu/datax/guppi_59856_57567_103605834_mars_0001.0000.raw .
+```
 
+```
 rsync -avW rsync://blpd18.ssl.berkeley.edu/datax/guppi_59856_58696_103674743_mars_off_0001.0000.raw .
 rsync -avW rsync://blpd18.ssl.berkeley.edu/datax/guppi_59856_58696_103674743_mars_off_0001.bfr5 .
+```
 
 These BFR5 files were produced by `bfr5_gen.jl` from this [repo](https://github.com/MydonSolutions/ata_bfr5_genie) (some local changes were made to produce the appropriate beam coordinates for the _off dataset).
 
