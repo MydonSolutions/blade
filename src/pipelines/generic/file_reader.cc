@@ -30,9 +30,9 @@ FileReader<OT>::FileReader(const Config& config) : config(config) {
         BL_CHECK_THROW(Result::ASSERTION_ERROR);
     }
 
-    if (guppiDims.numberOfFrequencyChannels() != bfr5Dims.numberOfFrequencyChannels()) {
-        BL_FATAL("Number of frequency channels from GUPPI RAW ({}) and BFR5 ({}) files mismatch.", 
-                guppiDims.numberOfFrequencyChannels(), bfr5Dims.numberOfFrequencyChannels());
+    if (guppi->getChannelStartIndex() + guppiDims.numberOfFrequencyChannels() > bfr5Dims.numberOfFrequencyChannels()) {
+        BL_FATAL("Number of frequency channels from GUPPI RAW ({} + {}) and BFR5 ({}) files mismatch.", 
+                guppi->getChannelStartIndex(), guppiDims.numberOfFrequencyChannels(), bfr5Dims.numberOfFrequencyChannels());
         BL_CHECK_THROW(Result::ASSERTION_ERROR);
     }
 
