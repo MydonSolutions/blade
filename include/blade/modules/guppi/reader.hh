@@ -93,11 +93,12 @@ class BLADE_API Reader : public Module {
 
     // Miscellaneous 
 
-    const F64 getTotalBandwidth() const;
+    const F64 getObservationBandwidth() const;
     const F64 getChannelBandwidth() const;
     const U64 getChannelStartIndex() const;
     const F64 getObservationFrequency() const;
     const F64 getSubBandCenterFrequency() const;
+    const F64 getSubBandwidth() const;
     const F64 getAzimuthAngle() const;
     const F64 getZenithAngle() const;
     const std::string getSourceName() const;

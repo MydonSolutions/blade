@@ -50,7 +50,7 @@ inline const Result ModeB(const Config& config) {
 
         .phasorObservationFrequencyHz = reader.getObservationFrequency(),
         .phasorChannelBandwidthHz = reader.getChannelBandwidth(),
-        .phasorTotalBandwidthHz = reader.getTotalBandwidth(),
+        .phasorTotalBandwidthHz = reader.getObservationBandwidth(),
         .phasorFrequencyStartIndex = reader.getChannelStartIndex(),
         .phasorReferenceAntennaIndex = 0,
         .phasorArrayReferencePosition = reader.getReferencePosition(),
@@ -112,7 +112,7 @@ inline const Result ModeB(const Config& config) {
                 .azimuthStart = reader.getAzimuthAngle(),
                 .zenithStart = reader.getZenithAngle(),
                 .observationFrequencyHz = reader.getSubBandCenterFrequency(),
-                .observationBandwidthHz = -1*reader.getTotalBandwidth(), // Negated as frequencies are reversed
+                .observationBandwidthHz = -1*reader.getSubBandwidth(), // Negated as frequencies are reversed
                 .julianDateStart = reader.getJulianDateOfLastReadBlock(),
                 .numberOfIfChannels = (I32) computeRunner->getWorker().getOutputBuffer().dims().numberOfPolarizations(),
                 .sourceName = reader.getSourceName(),

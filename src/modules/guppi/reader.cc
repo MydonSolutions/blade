@@ -150,8 +150,13 @@ const F64 Reader<OT>::getChannelBandwidth() const {
 }
 
 template<typename OT>
-const F64 Reader<OT>::getTotalBandwidth() const {
-    return getChannelBandwidth() * getTotalOutputBufferDims().numberOfFrequencyChannels();
+const F64 Reader<OT>::getObservationBandwidth() const {
+    return getChannelBandwidth() * getBlockMeta(&gr_iterate)->fenchan;
+}
+
+template<typename OT>
+const F64 Reader<OT>::getSubBandwidth() const {
+    return getChannelBandwidth() * this->getDatashape()->n_aspectchan;
 }
 
 template<typename OT>
