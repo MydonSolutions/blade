@@ -92,10 +92,8 @@ inline const Result ModeB(const Config& config) {
 
         // Append information to the Accumulator's GUPPI header.
 
-        writer.getModule()->headerPut("OBSFREQ", reader.getSubBandCenterFrequency()*1e-6);
-        writer.getModule()->headerPut("OBSBW", reader.getChannelBandwidth()*1e-6 * 
-                                readerTotalOutputDims.numberOfFrequencyChannels() / config.preBeamformerChannelizerRate
-        );
+        writer.getModule()->headerPut("OBSFREQ", reader.getCenterFrequency()*1e-6);
+        writer.getModule()->headerPut("OBSBW", reader.getBandwidth()*1e-6);
         writer.getModule()->headerPut("TBIN", config.preBeamformerChannelizerRate / reader.getChannelBandwidth());
         writer.getModule()->headerPut("PKTIDX", 0);
     }
@@ -111,8 +109,8 @@ inline const Result ModeB(const Config& config) {
                 .sourceCoordinate = reader.getBoresightCoordinate(),
                 .azimuthStart = reader.getAzimuthAngle(),
                 .zenithStart = reader.getZenithAngle(),
-                .observationFrequencyHz = reader.getSubBandCenterFrequency(),
-                .observationBandwidthHz = -1*reader.getSubBandwidth(), // Negated as frequencies are reversed
+                .observationFrequencyHz = reader.getCenterFrequency(),
+                .observationBandwidthHz = -1*reader.getBandwidth(), // Negated as frequencies are reversed
                 .julianDateStart = reader.getJulianDateOfLastReadBlock(),
                 .numberOfIfChannels = (I32) computeRunner->getWorker().getOutputBuffer().dims().numberOfPolarizations(),
                 .sourceName = reader.getSourceName(),

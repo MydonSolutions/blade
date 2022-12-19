@@ -155,7 +155,7 @@ const F64 Reader<OT>::getObservationBandwidth() const {
 }
 
 template<typename OT>
-const F64 Reader<OT>::getSubBandwidth() const {
+const F64 Reader<OT>::getBandwidth() const {
     return getChannelBandwidth() * this->getDatashape()->n_aspectchan;
 }
 
@@ -165,13 +165,13 @@ const U64 Reader<OT>::getChannelStartIndex() const {
 }
 
 template<typename OT>
-const F64 Reader<OT>::getSubBandCenterFrequency() const {
+const F64 Reader<OT>::getCenterFrequency() const {
     return (double)getBlockMeta(&gr_iterate)->obs_freq_mhz*1e6;
 }
 
 template<typename OT>
 const F64 Reader<OT>::getObservationFrequency() const {
-    return getSubBandCenterFrequency() +
+    return getCenterFrequency() +
     (-((double)getChannelStartIndex()) - (((double)this->getDatashape()->n_aspectchan) / 2.0)
         + (((double)getBlockMeta(&gr_iterate)->fenchan) / 2.0) + 0.5
     ) * getChannelBandwidth();
