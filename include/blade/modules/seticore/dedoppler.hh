@@ -48,7 +48,7 @@ class BLADE_API Dedoppler : public Module {
     // Input
 
     struct Input {
-        const ArrayTensor<Device::CUDA, F32>& buf;
+        const ArrayTensor<Device::CPU, F32>& buf;
         const Vector<Device::CPU, U64>& coarseFrequencyChannelOffset;
         const Vector<Device::CPU, F64>& julianDate;
     };
@@ -79,7 +79,7 @@ class BLADE_API Dedoppler : public Module {
     private:
     // Variables
 
-    ArrayTensor<Device::CPU, F32> buf;
+    ArrayTensor<Device::CUDA, F32> searchBuffer;
 
     const Config config;
     const Input input;

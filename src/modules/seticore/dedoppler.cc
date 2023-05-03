@@ -45,7 +45,15 @@ Dedoppler::Dedoppler(const Config& config, const Input& input)
     hfw->verbose = false;
     hit_recorder.reset(hfw);
 
-    this->buf.resize(this->input.buf.dims());
+    const auto inputDimensions = this->input.buf.dims();
+    // Search buffer is reduce to a single aspect
+    this->searchBuffer.resize({
+        .A = 1,
+        .F = inputDimensions.F,
+        .T = inputDimensions.T,
+        .P = inputDimensions.P
+    }
+    );
 
     BL_INFO("Dimensions [A, F, T, P]: {} -> {}", this->input.buf.dims(), "N/A");
     BL_INFO("Coarse Channel Rate: {}", this->config.coarseChannelRate);
@@ -65,20 +73,37 @@ Dedoppler::Dedoppler(const Config& config, const Input& input)
 const Result Dedoppler::process(const cudaStream_t& stream) {
     this->output.hits.clear();
     const auto inputDims = this->input.buf.dims();
-    const auto beamByteStride = this->input.buf.size() / inputDims.numberOfAspects();
+    const auto beamByteStride = this->input.buf.size_bytes() / inputDims.numberOfAspects();
 
-    BL_CHECK(Memory::Copy(this->buf, this->input.buf, stream));
+    FilterbankBuffer beamFilterbankBuffer = FilterbankBuffer(
+        inputDims.numberOfTimeSamples(),
+        inputDims.numberOfFrequencyChannels(),
+        this->searchBuffer.data()
+    );
+
     this->metadata.tstart = this->input.julianDate[0] - 2400000.5; // from JD to MJD
 
     const auto skipLastBeam = this->config.lastBeamIsIncoherent & (!this->config.searchIncoherentBeam);
     const auto beamsToSearch = inputDims.numberOfAspects() - (skipLastBeam ? 1 : 0);
+
     BL_DEBUG("processing {} beams", beamsToSearch);
     for (U64 beam = 0; beam < beamsToSearch; beam++) {
-        FilterbankBuffer beamFilterbankBuffer = FilterbankBuffer(
-            inputDims.numberOfTimeSamples(),
-            inputDims.numberOfFrequencyChannels(),
-            this->input.buf.data() + beam*beamByteStride
-        );
+        // misuse 2D copy just to effect offset on data copy
+        BL_CHECK(Memory::Copy2D(
+            this->searchBuffer,
+            beamByteStride,
+            0,
+            
+            this->input.buf,
+            beamByteStride,
+            beam*beamByteStride,
+
+            beamByteStride,
+            1,
+
+            stream
+        ));
+
         dedopplerer.search(
             beamFilterbankBuffer,
             this->metadata,
@@ -96,17 +121,26 @@ const Result Dedoppler::process(const cudaStream_t& stream) {
     });
 
     if (this->config.lastBeamIsIncoherent) {
-        FilterbankBuffer incohFilterbankBuffer = FilterbankBuffer(
-            inputDims.numberOfTimeSamples(),
-            inputDims.numberOfFrequencyChannels(),
-            this->input.buf.data() + (inputDims.numberOfAspects()-1)*beamByteStride
-        );
-        dedopplerer.addIncoherentPower(incohFilterbankBuffer, this->output.hits);
+        BL_CHECK(Memory::Copy2D(
+            this->searchBuffer,
+            beamByteStride,
+            0,
+            
+            this->input.buf,
+            beamByteStride,
+            (inputDims.numberOfAspects()-1)*beamByteStride,
+
+            beamByteStride,
+            1,
+
+            stream
+        ));
+        dedopplerer.addIncoherentPower(beamFilterbankBuffer, this->output.hits);
     }
 
     for (const DedopplerHit& hit : this->output.hits) {
         BL_DEBUG("Hit: {}", hit.toString());
-        hit_recorder->recordHit(hit, this->buf.data());
+        hit_recorder->recordHit(hit, this->input.buf.data());
     }
 
     return Result::SUCCESS;

@@ -12,6 +12,7 @@ FileReader<OT>::FileReader(const Config& config) : config(config) {
     this->connect(guppi, {
         .filepath = config.inputGuppiFile,
         .stepNumberOfTimeSamples = config.stepNumberOfTimeSamples, 
+        .requiredMultipleOfTimeSamplesSteps = config.requiredMultipleOfTimeSamplesSteps,
         .stepNumberOfFrequencyChannels = config.stepNumberOfFrequencyChannels,
         .numberOfTimeSampleStepsBeforeFrequencyChannelStep = config.numberOfTimeSampleStepsBeforeFrequencyChannelStep,
     }, {});

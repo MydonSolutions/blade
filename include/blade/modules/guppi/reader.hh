@@ -22,6 +22,7 @@ class BLADE_API Reader : public Module {
     struct Config {
         std::string filepath;
         U64 stepNumberOfTimeSamples;
+        U64 requiredMultipleOfTimeSamplesSteps = 1;
         U64 stepNumberOfFrequencyChannels;
 
         U64 numberOfTimeSampleStepsBeforeFrequencyChannelStep = 1;
@@ -89,15 +90,14 @@ class BLADE_API Reader : public Module {
     const ArrayDimensions getNumberOfStepsInDimensions() const {
         auto dimensionSteps = this->getTotalOutputBufferDims() / this->getStepOutputBufferDims();
         if (this->config.numberOfTimeSampleStepsBeforeFrequencyChannelStep > 0) {
-            dimensionSteps.T /= this->config.numberOfTimeSampleStepsBeforeFrequencyChannelStep;
-            dimensionSteps.T *= this->config.numberOfTimeSampleStepsBeforeFrequencyChannelStep;
+            dimensionSteps.T -= dimensionSteps.T % this->config.numberOfTimeSampleStepsBeforeFrequencyChannelStep;
         }
+        dimensionSteps.T -= dimensionSteps.T % this->config.requiredMultipleOfTimeSamplesSteps;
         return dimensionSteps;
     }
 
     const U64 getNumberOfSteps() {
-        return (this->getTotalOutputBufferDims() / 
-               this->getStepOutputBufferDims()).size();
+        return this->getNumberOfStepsInDimensions().size();
     }
 
     // Constructor & Processing
@@ -138,7 +138,7 @@ class BLADE_API Reader : public Module {
     U64 lastread_block_index = 0;
     U64 lastread_time_index = 0;
 
-    U64 current_time_sample_step = 0;
+    ArrayDimensions currentStepDimensionIndices = {.A = 0, .F = 0, .T = 0, .P = 0};
     U64 checkpoint_block_index = 0;
     U64 checkpoint_time_index = 0;
 
@@ -147,6 +147,9 @@ class BLADE_API Reader : public Module {
     // Helpers
 
     const bool keepRunning() const {
+        // const auto numberOfStepsInDimensions = this->getNumberOfStepsInDimensions();
+        // return this->currentStepDimensionIndices.T < numberOfStepsInDimensions.T &&
+        // this->currentStepDimensionIndices.F < numberOfStepsInDimensions.F;
         return guppiraw_iterate_ntime_remaining(&this->gr_iterate) >= 
                 this->config.stepNumberOfTimeSamples;
     }

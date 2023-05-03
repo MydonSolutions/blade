@@ -157,6 +157,9 @@ Reader<OT>::Reader(const Config& config, const Input& input)
     }
     BL_INFO("Total Dimensions [A, F, T, P]: {} -> {}", "N/A", totalDims);
     BL_INFO("Steps in Dimensions [A, F, T, P]: {}", getNumberOfStepsInDimensions());
+    if(config.requiredMultipleOfTimeSamplesSteps > 1) {
+        BL_INFO("Rounded down to multiple of {} time steps", config.requiredMultipleOfTimeSamplesSteps);
+    }
     BL_INFO("Input File Path: {}", config.filepath);
     
     // Allocate output buffers.
@@ -325,16 +328,16 @@ const Result Reader<OT>::preprocess(const cudaStream_t& stream,
     // Stow frequency-channel offset
     this->output.stepFrequencyChannelOffset[0] = this->lastread_channel_index;
 
-    
+
     if (config.numberOfTimeSampleStepsBeforeFrequencyChannelStep > 1) {
         // If stepping frequency-channels after N steps of time-samples,
         // step time first
         gr_iterate.iterate_time_first_not_channel_first = true;
 
-        if (this->current_time_sample_step + 1 == config.numberOfTimeSampleStepsBeforeFrequencyChannelStep) {
+        if ((this->currentStepDimensionIndices.T + 1) % config.numberOfTimeSampleStepsBeforeFrequencyChannelStep == 0) {
             // unless this peeked step was the Nth time-sample step,
             // increment channel instead
-            gr_iterate.iterate_time_first_not_channel_first = false;
+            gr_iterate.iterate_time_first_not_channel_first = false; 
         }
     }
 
@@ -343,18 +346,33 @@ const Result Reader<OT>::preprocess(const cudaStream_t& stream,
                             this->getStepOutputBufferDims().numberOfFrequencyChannels(),
                             this->getStepOutputBufferDims().numberOfAspects());
 
+    if (this->gr_iterate.iterate_time_first_not_channel_first) {
+        if(fastestDimensionExhausted) {
+            this->currentStepDimensionIndices.T = 0;
+            this->currentStepDimensionIndices.F += 1;
+        }
+        else {
+            this->currentStepDimensionIndices.T += 1;
+        }
+    }
+    else if (!this->gr_iterate.iterate_time_first_not_channel_first) {
+        if(fastestDimensionExhausted) {
+            this->currentStepDimensionIndices.F = 0;
+            this->currentStepDimensionIndices.T += 1;
+        }
+        else {
+            this->currentStepDimensionIndices.F += 1;
+        }
+    }
     
     if (config.numberOfTimeSampleStepsBeforeFrequencyChannelStep > 1) {
         if (gr_iterate.iterate_time_first_not_channel_first) {
-            this->current_time_sample_step += 1;
             if (fastestDimensionExhausted) {
                 BL_WARN("Time exhausted...");
             }
         }
         else {
             // just incremented channel instead
-            this->current_time_sample_step = 0;
-
             if (fastestDimensionExhausted) {
                 // wrapped on channel increment, so incremented time too
                 // current time is checkpoint
@@ -367,8 +385,23 @@ const Result Reader<OT>::preprocess(const cudaStream_t& stream,
                 // new channel
                 guppiraw_iterate_set_time_index(&this->gr_iterate, this->checkpoint_block_index, this->checkpoint_time_index);
             }
+        }   
+    }
+    else if (config.numberOfTimeSampleStepsBeforeFrequencyChannelStep == 0) {
+        if (
+            this->currentStepDimensionIndices.T % this->config.requiredMultipleOfTimeSamplesSteps == 0
+            && guppiraw_iterate_ntime_remaining(&this->gr_iterate) <
+                this->config.requiredMultipleOfTimeSamplesSteps * this->getStepOutputBufferDims().numberOfTimeSamples()
+        ) {
+            // not enough time-steps remain,
+            // reset time and increment channels once
+            while(!fastestDimensionExhausted) {
+                fastestDimensionExhausted = guppiraw_iterate_increment(&this->gr_iterate,
+                                this->getStepOutputBufferDims().numberOfTimeSamples(),
+                                this->getStepOutputBufferDims().numberOfFrequencyChannels(),
+                                this->getStepOutputBufferDims().numberOfAspects());
+            }
         }
-        
     }
 
     return Result::SUCCESS;

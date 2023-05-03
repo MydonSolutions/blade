@@ -19,6 +19,7 @@ class BLADE_API FileReader : public Pipeline {
         std::string inputBfr5File;
 
         U64 stepNumberOfTimeSamples;
+        U64 requiredMultipleOfTimeSamplesSteps = 1;
         U64 stepNumberOfFrequencyChannels;
         U64 numberOfTimeSampleStepsBeforeFrequencyChannelStep = 1;
     };
