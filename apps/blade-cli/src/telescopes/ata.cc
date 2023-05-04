@@ -161,7 +161,7 @@ const Result CollectUserInput(int argc, char **argv, Config& config) {
     config.produceDebugHits = false;
     app
         .add_flag("--produce-debug-hits", config.produceDebugHits,
-                "SETI search artificial hits are made covering all ingest data. Stitching the stamps together should yield the full upchannelised data. Disables hits grouping and stamp frequency margins.");
+                "SETI search artificial hits are made covering all ingest data. The filterbank field of the hits collectively have the beamformed data. The data field of the stamps collectively have all upchannelised data. Disables hits grouping and stamp frequency margins.");
 
     // Read stamps frequency margin.
     app
