@@ -56,7 +56,7 @@ typedef struct {
     BOOL driftRateZeroExcluded;
     BOOL incoherentBeamEnabled;
     BOOL progressBarDisabled;
-    U64 hitsGroupingMargin;
+    I64 hitsGroupingMargin;
     BOOL produceDebugHits;
     F64 stampFrequencyMarginHz;
 } Config;
