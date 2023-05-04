@@ -57,7 +57,7 @@ const Result HitsRawWriter<IT>::process(const cudaStream_t& stream) {
         const int lowIndex = top_hit.lowIndex() - hitStampFrequencyMargin;
         U64 first_channel = lowIndex < 0 ? 0 : (U64) lowIndex;
         U64 highIndex = top_hit.highIndex() + hitStampFrequencyMargin;
-        U64 last_channel = highIndex >= inputDims.numberOfFrequencyChannels() ? inputDims.numberOfFrequencyChannels()-1 : highIndex;
+        U64 last_channel = highIndex > inputDims.numberOfFrequencyChannels() ? inputDims.numberOfFrequencyChannels() : highIndex;
         
         BL_DEBUG("Top hit: {}", top_hit.toString());
         BL_DEBUG(
