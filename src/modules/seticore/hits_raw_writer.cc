@@ -34,11 +34,17 @@ template<typename IT>
 const Result HitsRawWriter<IT>::process(const cudaStream_t& stream) {
     const auto inputDims = getInputBuffer().dims();
     const auto frequencyChannelStride = getInputBuffer().size() / (inputDims.numberOfAspects()*inputDims.numberOfFrequencyChannels());
-    
-    const int hitStampFrequencyMargin = this->config.channelBandwidthHz < 500.0 ? 500.0 / this->config.channelBandwidthHz : 1;
+
+    int hitStampFrequencyMargin = 1;
+    if (this->config.stampFrequencyMarginHz <= 0.0) {
+        hitStampFrequencyMargin = 0;
+    }
+    else if (abs(this->config.channelBandwidthHz) < this->config.stampFrequencyMarginHz) {
+        hitStampFrequencyMargin = this->config.stampFrequencyMarginHz / abs(this->config.channelBandwidthHz);
+    }
 
     vector<DedopplerHitGroup> groups = makeHitGroups(input.hits, this->config.hitsGroupingMargin);
-    BL_DEBUG("{} group(s) of the search's {} hit(s)", groups.size(), input.hits.size());
+    BL_DEBUG("{} group(s) of the search's {} hit(s), stamps are padded by {} frequency-channels.", groups.size(), input.hits.size(), hitStampFrequencyMargin);
     for (const DedopplerHitGroup& group : groups) {
         const DedopplerHit& top_hit = group.topHit();
     // for (const DedopplerHit& top_hit : input.hits) {

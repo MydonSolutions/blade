@@ -38,6 +38,8 @@ class BLADE_API Dedoppler : public Module {
         U64 totalNumberOfTimeSamples;
         U64 totalNumberOfFrequencyChannels;
 
+        BOOL produceDebugHits = false;
+
         U64 blockSize = 512;
     };
 

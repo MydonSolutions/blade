@@ -59,6 +59,8 @@ ModeS<HT>::ModeS(const Config& config)
         .aspectCoordinates = config.beamCoordinates,
         .totalNumberOfTimeSamples = config.inputTotalNumberOfTimeSamples,
         .totalNumberOfFrequencyChannels = config.inputTotalNumberOfFrequencyChannels,
+
+        .produceDebugHits = config.produceDebugHits,
     }, {
         .buf = this->input,
         .coarseFrequencyChannelOffset = this->coarseFrequencyChannelOffset,
@@ -78,6 +80,8 @@ ModeS<HT>::ModeS(const Config& config)
             .coarseChannelRatio = config.inputCoarseChannelRatio,
             .channelBandwidthHz = config.searchChannelBandwidthHz,
             .channelTimespanS = config.searchChannelTimespanS,
+            .stampFrequencyMarginHz = config.produceDebugHits ? 0.0 : config.searchStampFrequencyMarginHz,
+            .hitsGroupingMargin = config.produceDebugHits ? -config.inputCoarseChannelRatio : config.searchHitsGroupingMargin,
             .excludeDriftRateZero = config.searchDriftRateZeroExcluded,
         }, {
             .buffer = this->prebeamformerData,
@@ -98,6 +102,8 @@ ModeS<HT>::ModeS(const Config& config)
             .coarseChannelRatio = config.inputCoarseChannelRatio,
             .channelBandwidthHz = config.searchChannelBandwidthHz,
             .channelTimespanS = config.searchChannelTimespanS,
+            .stampFrequencyMarginHz = config.produceDebugHits ? 0.0 : config.searchStampFrequencyMarginHz,
+            .hitsGroupingMargin = config.produceDebugHits ? -config.inputCoarseChannelRatio : config.searchHitsGroupingMargin,
             .excludeDriftRateZero = config.searchDriftRateZeroExcluded,
         }, {
             .buffer = this->prebeamformerData,

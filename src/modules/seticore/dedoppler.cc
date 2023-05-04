@@ -73,6 +73,35 @@ Dedoppler::Dedoppler(const Config& config, const Input& input)
 const Result Dedoppler::process(const cudaStream_t& stream) {
     this->output.hits.clear();
     const auto inputDims = this->input.buf.dims();
+
+    if (this->config.produceDebugHits) {
+        const double drift_rate_resolution = this->config.channelBandwidthHz / ((inputDims.numberOfTimeSamples()-1) * this->config.channelTimespanS);
+        // the stamp.data list-field has some upper limit, try stay under that
+        // data is [time, chan, pol, ant, complexity]
+        // assume 128 antenna (conservative)
+        const int stamp_data_length_limit = 128*1024*1024;
+        const int hit_drift_step_limit = stamp_data_length_limit/(inputDims.numberOfTimeSamples()*2*128*2);
+        BL_DEBUG("Limited debug drift step to {}.", hit_drift_step_limit);
+
+        for (int fine_channel_index = 0; fine_channel_index < inputDims.numberOfFrequencyChannels(); fine_channel_index += hit_drift_step_limit) {
+            const int hit_drift_steps = fine_channel_index + hit_drift_step_limit >= inputDims.numberOfFrequencyChannels() 
+                ? inputDims.numberOfFrequencyChannels() - fine_channel_index
+                : hit_drift_step_limit;
+            this->output.hits.push_back(DedopplerHit(
+                this->metadata,
+                fine_channel_index, // index
+                hit_drift_steps, // drift_steps
+                hit_drift_steps*drift_rate_resolution, // drift_rate
+                0.0, // snr
+                -2, // beam
+                this->input.coarseFrequencyChannelOffset[0], // coarse_channel
+                inputDims.numberOfTimeSamples(), // num_timesteps
+                0.0 // power
+            ));
+        }
+        return Result::SUCCESS;
+    }
+
     const auto beamByteStride = this->input.buf.size_bytes() / inputDims.numberOfAspects();
 
     FilterbankBuffer beamFilterbankBuffer = FilterbankBuffer(

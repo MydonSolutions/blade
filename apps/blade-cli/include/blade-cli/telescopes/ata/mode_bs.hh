@@ -129,10 +129,19 @@ inline const Result ModeBS(const Config& config) {
     auto beamformRunner = Runner<Beamform>::New(config.numberOfWorkers, beamformConfig, false);
 
     // Instantiate search pipeline and runner.
+    const auto stepNumberOfTimeSamples_prevPow2 = config.stepNumberOfTimeSamples == 0 ? 0 : (0x80000000 >> __builtin_clz(config.stepNumberOfTimeSamples));
+    if (config.stepNumberOfTimeSamples != stepNumberOfTimeSamples_prevPow2) {
+        BL_FATAL("Mode S requires a power of 2 number of spectra. Specify an appropriate number of step time-spectra.");
+    }
+    const auto searchAccumulateRate = readerTotalOutputDims.T / (config.preBeamformerChannelizerRate * config.stepNumberOfTimeSamples);
+    const auto searchAccumulateRate_prevPow2 = searchAccumulateRate == 0 ? 0 : (0x80000000 >> __builtin_clz(searchAccumulateRate));
+    if (searchAccumulateRate != searchAccumulateRate_prevPow2) {
+        BL_FATAL("Mode S requires a power of 2 number of spectra. Accumulation rate limited from {} to {}.", searchAccumulateRate, searchAccumulateRate_prevPow2);
+    }
 
     typename Search::Config searchConfig = {
         // accumulate all time
-        .accumulateRate = readerTotalOutputDims.T / (config.preBeamformerChannelizerRate * config.stepNumberOfTimeSamples),
+        .accumulateRate = searchAccumulateRate_prevPow2,
 
         .prebeamformerInputDimensions = beamformRunner->getWorker().getInputBuffer().dims(),
         .inputDimensions = beamformRunner->getWorker().getOutputBuffer().dims(),
@@ -154,11 +163,15 @@ inline const Result ModeBS(const Config& config) {
         .searchMinimumDriftRate = config.driftRateMinimum,
         .searchMaximumDriftRate = config.driftRateMaximum,
         .searchSnrThreshold = config.snrThreshold,
+        .searchStampFrequencyMarginHz = config.stampFrequencyMarginHz,
+        .searchHitsGroupingMargin = config.hitsGroupingMargin,
         .searchIncoherentBeam = true,
 
         .searchChannelBandwidthHz = reader.getChannelBandwidth() / config.preBeamformerChannelizerRate,
         .searchChannelTimespanS = config.preBeamformerChannelizerRate * config.integrationSize * reader.getChannelTimespan(),
         .searchOutputFilepathStem = config.outputFile,
+
+        .produceDebugHits = config.produceDebugHits,
     };
     // searchConfig.accumulateRate;
 

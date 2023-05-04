@@ -145,11 +145,29 @@ const Result CollectUserInput(int argc, char **argv, Config& config) {
         .add_flag("-I,--incoherent-beam-enable", config.incoherentBeamEnabled,
                 "Beamform the incoherent beam");
     
-    // Read progress bar enable.
+    // Read progress bar disable.
     config.progressBarDisabled = false;
     app
         .add_flag("-P,--no-progress-bar", config.progressBarDisabled,
                 "Switch off the progress bar.");
+    
+    // Read seticore hits grouping margin
+    app
+        .add_option("--hits-grouping-margin", config.hitsGroupingMargin,
+                "SETI search grouping margin specified in channels.")
+            ->default_val(30);
+    
+    // Read debug hits enable.
+    config.produceDebugHits = false;
+    app
+        .add_flag("--produce-debug-hits", config.produceDebugHits,
+                "SETI search artificial hits are made covering all ingest data. Stitching the stamps together should yield the full upchannelised data. Disables hits grouping and stamp frequency margins.");
+
+    // Read stamps frequency margin.
+    app
+        .add_option("--stamp-frequency-margin", config.stampFrequencyMarginHz,
+                "SETI search stamps frequency marginal padding.")
+            ->default_val(500.0);
 
     try {
         app.parse(argc, argv);
