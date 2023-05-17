@@ -149,7 +149,8 @@ const Result ModeS<HT>::accumulate(const ArrayTensor<Device::CUDA, F32>& data,
         
         BL_CHECK(Memory::Copy(
             this->input,
-            data
+            data,
+            stream
         ));
     }
     else {
@@ -198,7 +199,7 @@ const Result ModeS<HT>::accumulate(const ArrayTensor<Device::CUDA, F32>& data,
     }
 
     BL_DEBUG(
-        "accumulate from CPU: {}/{}\nschan: {}\nfch1: {}\njd: {}",
+        "accumulate from RAM: {}/{}\nschan: {}\nfch1: {}\njd: {}",
         this->getCurrentAccumulatorStep(),
         this->getAccumulatorNumberOfSteps(),
         coarseFrequencyChannelOffset[0],
@@ -238,12 +239,14 @@ const Result ModeS<HT>::accumulate(const ArrayTensor<Device::CUDA, F32>& data,
     if (this->getAccumulatorNumberOfSteps() == 1) {
         BL_CHECK(Memory::Copy(
             this->prebeamformerData,
-            prebeamformerData
+            prebeamformerData,
+            stream
         ));
         
         BL_CHECK(Memory::Copy(
             this->input,
-            data
+            data,
+            stream
         ));
     }
     else {
@@ -292,7 +295,7 @@ const Result ModeS<HT>::accumulate(const ArrayTensor<Device::CUDA, F32>& data,
     }
 
     BL_DEBUG(
-        "accumulate from CUDA: {}/{}\nschan: {}\nfch1: {}\njd: {}",
+        "accumulate from VRAM: {}/{}\nschan: {}\nfch1: {}\njd: {}",
         this->getCurrentAccumulatorStep(),
         this->getAccumulatorNumberOfSteps(),
         coarseFrequencyChannelOffset[0],
