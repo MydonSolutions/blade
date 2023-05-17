@@ -334,7 +334,7 @@ const Result Reader<OT>::preprocess(const cudaStream_t& stream,
         // step time first
         gr_iterate.iterate_time_first_not_channel_first = true;
 
-        if ((this->currentStepDimensionIndices.T + 1) % config.numberOfTimeSampleStepsBeforeFrequencyChannelStep == 0) {
+        if (this->current_time_sample_step + 1 == config.numberOfTimeSampleStepsBeforeFrequencyChannelStep) {
             // unless this peeked step was the Nth time-sample step,
             // increment channel instead
             gr_iterate.iterate_time_first_not_channel_first = false; 
@@ -345,34 +345,18 @@ const Result Reader<OT>::preprocess(const cudaStream_t& stream,
                             this->getStepOutputBufferDims().numberOfTimeSamples(),
                             this->getStepOutputBufferDims().numberOfFrequencyChannels(),
                             this->getStepOutputBufferDims().numberOfAspects());
-
-    if (this->gr_iterate.iterate_time_first_not_channel_first) {
-        if(fastestDimensionExhausted) {
-            this->currentStepDimensionIndices.T = 0;
-            this->currentStepDimensionIndices.F += 1;
-        }
-        else {
-            this->currentStepDimensionIndices.T += 1;
-        }
-    }
-    else if (!this->gr_iterate.iterate_time_first_not_channel_first) {
-        if(fastestDimensionExhausted) {
-            this->currentStepDimensionIndices.F = 0;
-            this->currentStepDimensionIndices.T += 1;
-        }
-        else {
-            this->currentStepDimensionIndices.F += 1;
-        }
-    }
     
     if (config.numberOfTimeSampleStepsBeforeFrequencyChannelStep > 1) {
         if (gr_iterate.iterate_time_first_not_channel_first) {
+            this->current_time_sample_step += 1;
             if (fastestDimensionExhausted) {
                 BL_WARN("Time exhausted...");
             }
         }
         else {
             // just incremented channel instead
+            this->current_time_sample_step = 0;
+
             if (fastestDimensionExhausted) {
                 // wrapped on channel increment, so incremented time too
                 // current time is checkpoint
@@ -388,8 +372,10 @@ const Result Reader<OT>::preprocess(const cudaStream_t& stream,
         }   
     }
     else if (config.numberOfTimeSampleStepsBeforeFrequencyChannelStep == 0) {
+        this->current_time_sample_step += 1;
+
         if (
-            this->currentStepDimensionIndices.T % this->config.requiredMultipleOfTimeSamplesSteps == 0
+            this->current_time_sample_step % this->config.requiredMultipleOfTimeSamplesSteps == 0
             && guppiraw_iterate_ntime_remaining(&this->gr_iterate) <
                 this->config.requiredMultipleOfTimeSamplesSteps * this->getStepOutputBufferDims().numberOfTimeSamples()
         ) {
@@ -401,6 +387,7 @@ const Result Reader<OT>::preprocess(const cudaStream_t& stream,
                                 this->getStepOutputBufferDims().numberOfFrequencyChannels(),
                                 this->getStepOutputBufferDims().numberOfAspects());
             }
+            this->current_time_sample_step = 0;
         }
     }
 

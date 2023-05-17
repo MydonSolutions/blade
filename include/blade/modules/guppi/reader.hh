@@ -138,7 +138,7 @@ class BLADE_API Reader : public Module {
     U64 lastread_block_index = 0;
     U64 lastread_time_index = 0;
 
-    ArrayDimensions currentStepDimensionIndices = {.A = 0, .F = 0, .T = 0, .P = 0};
+    U64 current_time_sample_step = 0;
     U64 checkpoint_block_index = 0;
     U64 checkpoint_time_index = 0;
 
