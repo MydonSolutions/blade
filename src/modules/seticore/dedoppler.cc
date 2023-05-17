@@ -52,15 +52,28 @@ Dedoppler::Dedoppler(const Config& config, const Input& input)
         .F = inputDimensions.F,
         .T = inputDimensions.T,
         .P = inputDimensions.P
+    });
+
+    if (this->config.lastBeamIsIncoherent) {
+        this->incohBuffer.resize({
+            .A = 1,
+            .F = inputDimensions.F,
+            .T = inputDimensions.T,
+            .P = inputDimensions.P
+        });
     }
-    );
 
     BL_INFO("Dimensions [A, F, T, P]: {} -> {}", this->input.buf.dims(), "N/A");
-    BL_INFO("Coarse Channel Rate: {}", this->config.coarseChannelRate);
-    BL_INFO("Channel Bandwidth: {} Hz", this->config.channelBandwidthHz);
-    BL_INFO("Channel Timespan: {} s", this->config.channelTimespanS);
-    BL_INFO("Drift Rate Range: [{}, {}] Hz/s", this->config.minimumDriftRate, this->config.maximumDriftRate);
-    BL_INFO("SNR Threshold: {}", this->config.snrThreshold);
+    if (this->config.produceDebugHits) {
+        BL_INFO("Producing exhaustive hits for debugging: {}", this->config.produceDebugHits);
+    }
+    else {
+        BL_INFO("Coarse Channel Rate: {}", this->config.coarseChannelRate);
+        BL_INFO("Channel Bandwidth: {} Hz", this->config.channelBandwidthHz);
+        BL_INFO("Channel Timespan: {} s", this->config.channelTimespanS);
+        BL_INFO("Drift Rate Range: [{}, {}] Hz/s", this->config.minimumDriftRate, this->config.maximumDriftRate);
+        BL_INFO("SNR Threshold: {}", this->config.snrThreshold);
+    }
 
     const auto t = input.buf.dims().numberOfTimeSamples();
     const auto t_previousPowerOf2 = t == 0 ? 0 : (0x80000000 >> __builtin_clz(t));
@@ -79,6 +92,10 @@ const Result Dedoppler::process(const cudaStream_t& stream) {
     const auto skipLastBeam = this->config.lastBeamIsIncoherent & (!this->config.searchIncoherentBeam);
     const auto beamsToSearch = inputDims.numberOfAspects() - (skipLastBeam ? 1 : 0);
 
+    const auto beamByteStride = this->input.buf.size_bytes() / inputDims.numberOfAspects();
+    const auto beamElementStride = this->input.buf.size() / inputDims.numberOfAspects();
+    size_t hits_after_last_beam = 0;
+
     if (this->config.produceDebugHits) {
         const double drift_rate_resolution = this->config.channelBandwidthHz / ((inputDims.numberOfTimeSamples()-1) * this->config.channelTimespanS);
         // the stamp.data list-field has some upper limit, try stay under that
@@ -89,7 +106,7 @@ const Result Dedoppler::process(const cudaStream_t& stream) {
         BL_DEBUG("Limited debug drift step to {}.", hit_drift_step_limit);
 
         for (U64 beam = 0; beam < beamsToSearch; beam++) {
-            for (int fine_channel_index = 0; fine_channel_index < inputDims.numberOfFrequencyChannels(); fine_channel_index += hit_drift_step_limit) {
+            for (U64 fine_channel_index = 0; fine_channel_index < inputDims.numberOfFrequencyChannels(); fine_channel_index += hit_drift_step_limit) {
                 const int hit_drift_steps = fine_channel_index + hit_drift_step_limit >= inputDims.numberOfFrequencyChannels() 
                     ? inputDims.numberOfFrequencyChannels() - fine_channel_index
                     : hit_drift_step_limit;
@@ -106,12 +123,17 @@ const Result Dedoppler::process(const cudaStream_t& stream) {
                     0.0 // power
                 ));
             }
+
+            BL_DEBUG("Beamformed data #{}: {}", beam, this->input.buf.data()[beam*beamElementStride]);
+            for (size_t i = hits_after_last_beam; i < this->output.hits.size(); i++) {
+                const DedopplerHit& hit = this->output.hits[i];
+                BL_DEBUG("Hit: {}", hit.toString());
+                hit_recorder->recordHit(hit, this->input.buf.data() + beam*beamElementStride);
+            }
+
+            hits_after_last_beam = this->output.hits.size();
         }
 
-        for (const DedopplerHit& hit : this->output.hits) {
-            BL_DEBUG("Hit: {}", hit.toString());
-            hit_recorder->recordHit(hit, this->input.buf.data());
-        }
         // drop all hits after those for the first hit, to avoid duplicate stamps
         const int single_beam_hit_count = this->output.hits.size()/beamsToSearch;
         this->output.hits.erase(
@@ -121,17 +143,34 @@ const Result Dedoppler::process(const cudaStream_t& stream) {
 
         return Result::SUCCESS;
     }
-    const auto beamByteStride = this->input.buf.size_bytes() / inputDims.numberOfAspects();
 
     FilterbankBuffer beamFilterbankBuffer = FilterbankBuffer(
         inputDims.numberOfTimeSamples(),
         inputDims.numberOfFrequencyChannels(),
         this->searchBuffer.data()
     );
+    
+    if (this->config.lastBeamIsIncoherent) {
+        BL_CHECK(Memory::Copy2D(
+            this->incohBuffer,
+            beamByteStride,
+            0,
+            
+            this->input.buf,
+            beamByteStride,
+            (inputDims.numberOfAspects()-1)*beamByteStride,
+
+            beamByteStride,
+            1,
+
+            stream
+        ));
+    }
 
     BL_DEBUG("processing {} beams", beamsToSearch);
     for (U64 beam = 0; beam < beamsToSearch; beam++) {
         // misuse 2D copy just to effect offset on data copy
+        // copy from RAM to VRAM
         BL_CHECK(Memory::Copy2D(
             this->searchBuffer,
             beamByteStride,
@@ -157,34 +196,30 @@ const Result Dedoppler::process(const cudaStream_t& stream) {
             this->config.snrThreshold,
             &this->output.hits
         );
+
+        std::vector<DedopplerHit> beam_hits(
+            this->output.hits.begin() + hits_after_last_beam,
+            this->output.hits.end()
+        );
+
+        if (this->config.lastBeamIsIncoherent) {
+            dedopplerer.addIncoherentPower(
+                beamFilterbankBuffer,
+                beam_hits
+            );
+        }
+
+        for (const DedopplerHit& hit : beam_hits) {
+            BL_DEBUG("Hit: {}", hit.toString());
+            hit_recorder->recordHit(hit, this->input.buf.data() + beam*beamElementStride);
+        }
+
+        hits_after_last_beam = this->output.hits.size();
     }
 
     BL_CUDA_CHECK(cudaStreamSynchronize(stream), [&]{
         BL_FATAL("Failed to synchronize stream: {}", err);
     });
-
-    if (this->config.lastBeamIsIncoherent) {
-        BL_CHECK(Memory::Copy2D(
-            this->searchBuffer,
-            beamByteStride,
-            0,
-            
-            this->input.buf,
-            beamByteStride,
-            (inputDims.numberOfAspects()-1)*beamByteStride,
-
-            beamByteStride,
-            1,
-
-            stream
-        ));
-        dedopplerer.addIncoherentPower(beamFilterbankBuffer, this->output.hits);
-    }
-
-    for (const DedopplerHit& hit : this->output.hits) {
-        BL_DEBUG("Hit: {}", hit.toString());
-        hit_recorder->recordHit(hit, this->input.buf.data());
-    }
 
     return Result::SUCCESS;
 }

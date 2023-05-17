@@ -82,6 +82,7 @@ class BLADE_API Dedoppler : public Module {
     // Variables
 
     ArrayTensor<Device::CUDA, F32> searchBuffer;
+    ArrayTensor<Device::CUDA, F32> incohBuffer;
 
     const Config config;
     const Input input;
