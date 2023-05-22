@@ -98,6 +98,7 @@ inline const Result ModeBS(const Config& config) {
         ),
         .phasorBeamCoordinates = reader.getBeamCoordinates(),
         .phasorAntennaCoefficientChannelRate = config.preBeamformerChannelizerRate,
+        .phasorNegateDelays = config.phasorNegateDelays,
 
         .beamformerIncoherentBeam = true,
 

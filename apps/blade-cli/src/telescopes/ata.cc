@@ -168,6 +168,12 @@ const Result CollectUserInput(int argc, char **argv, Config& config) {
         .add_option("--stamp-frequency-margin", config.stampFrequencyMarginHz,
                 "SETI search stamps frequency marginal padding.")
             ->default_val(500.0);
+    
+    // Read phasor delays negation.
+    config.phasorNegateDelays = false;
+    app
+        .add_flag("--negate-phasor-delays", config.phasorNegateDelays,
+                "Negate the delays from which the beamforming-phasors are calculated.");
 
     try {
         app.parse(argc, argv);

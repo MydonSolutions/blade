@@ -98,6 +98,7 @@ inline const Result ModeB(const Config& config) {
         .phasorAntennaCoefficients = reader.getAntennaCoefficients(readerTotalOutputDims.numberOfFrequencyChannels(), reader.getChannelStartIndex()),
         .phasorBeamCoordinates = reader.getBeamCoordinates(),
         .phasorAntennaCoefficientChannelRate = config.preBeamformerChannelizerRate,
+        .phasorNegateDelays = config.phasorNegateDelays,
 
         .beamformerIncoherentBeam = config.incoherentBeamEnabled,
 

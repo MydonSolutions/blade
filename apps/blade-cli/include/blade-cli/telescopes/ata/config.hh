@@ -59,6 +59,7 @@ typedef struct {
     I64 hitsGroupingMargin;
     BOOL produceDebugHits;
     F64 stampFrequencyMarginHz;
+    BOOL phasorNegateDelays;
 } Config;
 
 }  // namespace Blade::CLI::Telecopes::ATA
