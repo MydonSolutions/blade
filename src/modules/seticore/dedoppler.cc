@@ -149,6 +149,12 @@ const Result Dedoppler::process(const cudaStream_t& stream) {
         inputDims.numberOfFrequencyChannels(),
         this->searchBuffer.data()
     );
+
+    FilterbankBuffer incohbeamFilterbankBuffer = FilterbankBuffer(
+        inputDims.numberOfTimeSamples(),
+        inputDims.numberOfFrequencyChannels(),
+        this->incohBuffer.data()
+    );
     
     if (this->config.lastBeamIsIncoherent) {
         BL_CHECK(Memory::Copy2D(
@@ -163,7 +169,7 @@ const Result Dedoppler::process(const cudaStream_t& stream) {
             beamByteStride,
             1,
 
-            stream
+            0 // seticore runs on the default stream
         ));
     }
 
@@ -183,7 +189,7 @@ const Result Dedoppler::process(const cudaStream_t& stream) {
             beamByteStride,
             1,
 
-            stream
+            0 // seticore runs on the default stream
         ));
 
         dedopplerer.search(
@@ -197,14 +203,13 @@ const Result Dedoppler::process(const cudaStream_t& stream) {
             &this->output.hits
         );
 
+        if (this->config.lastBeamIsIncoherent) {
         std::vector<DedopplerHit> beam_hits(
             this->output.hits.begin() + hits_after_last_beam,
             this->output.hits.end()
         );
-
-        if (this->config.lastBeamIsIncoherent) {
             dedopplerer.addIncoherentPower(
-                beamFilterbankBuffer,
+                incohbeamFilterbankBuffer,
                 beam_hits
             );
         }
@@ -217,8 +222,8 @@ const Result Dedoppler::process(const cudaStream_t& stream) {
         hits_after_last_beam = this->output.hits.size();
     }
 
-    BL_CUDA_CHECK(cudaStreamSynchronize(stream), [&]{
-        BL_FATAL("Failed to synchronize stream: {}", err);
+    BL_CUDA_CHECK(cudaStreamSynchronize(0), [&]{
+        BL_FATAL("Failed to synchronize default stream: {}", err);
     });
 
     return Result::SUCCESS;
