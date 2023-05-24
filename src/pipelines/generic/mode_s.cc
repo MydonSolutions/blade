@@ -267,7 +267,8 @@ const Result ModeS<HT>::accumulate(const ArrayTensor<Device::CUDA, F32>& data,
                 0,
 
                 inputWidth,
-                inputHeight
+                inputHeight,
+                stream
             )
         );
 
