@@ -203,11 +203,11 @@ const Result Dedoppler::process(const cudaStream_t& stream) {
             &this->output.hits
         );
 
-        if (this->config.lastBeamIsIncoherent) {
         std::vector<DedopplerHit> beam_hits(
             this->output.hits.begin() + hits_after_last_beam,
             this->output.hits.end()
         );
+        if (this->config.lastBeamIsIncoherent) {
             dedopplerer.addIncoherentPower(
                 incohbeamFilterbankBuffer,
                 beam_hits
