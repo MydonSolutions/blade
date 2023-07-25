@@ -22,6 +22,7 @@ class BLADE_API FileReader : public Pipeline {
         U64 requiredMultipleOfTimeSamplesSteps = 1;
         U64 stepNumberOfFrequencyChannels;
         U64 numberOfTimeSampleStepsBeforeFrequencyChannelStep = 1;
+        U64 numberOfGuppiFilesLimit = 0; // zero for no limit
     };
 
     explicit FileReader(const Config& config);

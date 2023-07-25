@@ -108,6 +108,7 @@ Reader<OT>::Reader(const Config& config, const Input& input)
         BL_CHECK_THROW(Result::ASSERTION_ERROR);
     }
 
+    this->gr_iterate.n_file = config.numberOfFilesLimit;
     // Open GUPPI file and configure step size.
     const auto res =
         guppiraw_iterate_open_with_user_metadata(&gr_iterate,
@@ -155,7 +156,7 @@ Reader<OT>::Reader(const Config& config, const Input& input)
         BL_INFO("Stepping Frequency Channels after every {} steps in Time Samples", config.numberOfTimeSampleStepsBeforeFrequencyChannelStep);
         gr_iterate.iterate_time_first_not_channel_first = true;
     }
-    BL_INFO("Total Dimensions [A, F, T, P]: {} -> {}", "N/A", totalDims);
+    BL_INFO("Total Dimensions [A, F, T, P]: {} -> {} (across {} {})", "N/A", totalDims, this->gr_iterate.n_file, this->gr_iterate.n_file > 1 ? "files" : "file");
     BL_INFO("Steps in Dimensions [A, F, T, P]: {}", getNumberOfStepsInDimensions());
     if(config.requiredMultipleOfTimeSamplesSteps > 1) {
         BL_INFO("Rounded down to multiple of {} time steps", config.requiredMultipleOfTimeSamplesSteps);

@@ -174,6 +174,12 @@ const Result CollectUserInput(int argc, char **argv, Config& config) {
     app
         .add_flag("--negate-phasor-delays", config.phasorNegateDelays,
                 "Negate the delays from which the beamforming-phasors are calculated.");
+    
+    // Read guppi file limit.
+    app
+        .add_option("--input-guppi-raw-limit", config.inputGuppiFileLimit,
+                "Limit the number of RAW files to process (0 for no limit).")
+            ->default_val(0);
 
     try {
         app.parse(argc, argv);

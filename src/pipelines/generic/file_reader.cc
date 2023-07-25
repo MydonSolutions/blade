@@ -15,6 +15,7 @@ FileReader<OT>::FileReader(const Config& config) : config(config) {
         .requiredMultipleOfTimeSamplesSteps = config.requiredMultipleOfTimeSamplesSteps,
         .stepNumberOfFrequencyChannels = config.stepNumberOfFrequencyChannels,
         .numberOfTimeSampleStepsBeforeFrequencyChannelStep = config.numberOfTimeSampleStepsBeforeFrequencyChannelStep,
+        .numberOfFilesLimit = config.numberOfGuppiFilesLimit,
     }, {});
 
     BL_DEBUG("Instantiating BFR5 file reader.");

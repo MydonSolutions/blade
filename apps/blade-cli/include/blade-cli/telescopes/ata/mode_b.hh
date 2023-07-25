@@ -37,6 +37,7 @@ inline const Result ModeB(const Config& config) {
         .stepNumberOfTimeSamples = config.preBeamformerChannelizerRate,
         .stepNumberOfFrequencyChannels = config.stepNumberOfFrequencyChannels,
         .numberOfTimeSampleStepsBeforeFrequencyChannelStep = config.stepNumberOfTimeSamples,
+        .numberOfGuppiFilesLimit = config.inputGuppiFileLimit,
     };
 
     auto readerRunner = Runner<Reader>::New(1, readerConfig, false);

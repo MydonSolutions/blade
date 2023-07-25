@@ -27,6 +27,7 @@ class BLADE_API Reader : public Module {
 
         U64 numberOfTimeSampleStepsBeforeFrequencyChannelStep = 1;
         U64 blockSize = 512;
+        U64 numberOfFilesLimit = 0; // zero for no limit
     };
 
     constexpr const Config& getConfig() const {

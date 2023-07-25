@@ -38,6 +38,7 @@ inline const Result ModeBS(const Config& config) {
         .requiredMultipleOfTimeSamplesSteps = config.stepNumberOfTimeSamples,
         .stepNumberOfFrequencyChannels = config.stepNumberOfFrequencyChannels,
         .numberOfTimeSampleStepsBeforeFrequencyChannelStep = 0,
+        .numberOfGuppiFilesLimit = config.inputGuppiFileLimit,
     };
 
     auto readerRunner = Runner<Reader>::New(1, readerConfig, false);

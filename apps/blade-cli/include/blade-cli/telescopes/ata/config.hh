@@ -60,6 +60,7 @@ typedef struct {
     BOOL produceDebugHits;
     F64 stampFrequencyMarginHz;
     BOOL phasorNegateDelays;
+    U64 inputGuppiFileLimit;
 } Config;
 
 }  // namespace Blade::CLI::Telecopes::ATA
