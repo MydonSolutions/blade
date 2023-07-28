@@ -37,9 +37,16 @@ ModeS<HT>::ModeS(const Config& config)
     }
 
     BL_DEBUG("Instantiating Dedoppler module.");
+    F64 minimumDriftRate = config.searchMinimumDriftRate;
+    if (config.searchDriftRateZeroExcluded && minimumDriftRate == 0.0) {
+        // set the minimum to at least the drift-rate-resolution:
+        // Calculation taken from the private Dedoppler.drift_rate_resolution.
+        minimumDriftRate = config.searchChannelBandwidthHz / (this->input.dims().numberOfTimeSamples() * config.searchChannelTimespanS);
+        BL_INFO("Set the minimum drift rate of the dedoppler search to the search's resolution of {} Hz/s to exclude zero.", minimumDriftRate);
+    }
     this->connect(this->dedoppler, {
         .mitigateDcSpike = config.searchMitigateDcSpike,
-        .minimumDriftRate = config.searchMinimumDriftRate,
+        .minimumDriftRate = minimumDriftRate,
         .maximumDriftRate = config.searchMaximumDriftRate,
         .snrThreshold = config.searchSnrThreshold,
         .frequencyOfFirstChannelHz = config.inputFrequencyOfFirstChannelHz,
@@ -82,7 +89,6 @@ ModeS<HT>::ModeS(const Config& config)
             .channelTimespanS = config.searchChannelTimespanS,
             .stampFrequencyMarginHz = config.produceDebugHits ? 0.0 : config.searchStampFrequencyMarginHz,
             .hitsGroupingMargin = config.produceDebugHits ? -config.inputCoarseChannelRatio : config.searchHitsGroupingMargin,
-            .excludeDriftRateZero = config.searchDriftRateZeroExcluded,
         }, {
             .buffer = this->prebeamformerData,
             .hits = this->dedoppler->getOutputHits(),
@@ -104,7 +110,6 @@ ModeS<HT>::ModeS(const Config& config)
             .channelTimespanS = config.searchChannelTimespanS,
             .stampFrequencyMarginHz = config.produceDebugHits ? 0.0 : config.searchStampFrequencyMarginHz,
             .hitsGroupingMargin = config.produceDebugHits ? -config.inputCoarseChannelRatio : config.searchHitsGroupingMargin,
-            .excludeDriftRateZero = config.searchDriftRateZeroExcluded,
         }, {
             .buffer = this->prebeamformerData,
             .hits = this->dedoppler->getOutputHits(),

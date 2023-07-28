@@ -137,7 +137,7 @@ const Result CollectUserInput(int argc, char **argv, Config& config) {
     config.driftRateZeroExcluded = false;
     app
         .add_flag("-Z,--search-drift-rate-exclude-zero", config.driftRateZeroExcluded,
-                "SETI search exclude hits with drift rate of zero");
+                "SETI search exclude hits with drift rate of zero (short-hand for setting --search-drift-rate-minimum to the Dedoppler drift rate resolution)");
     
     // Read incoherent beam enable.
     config.incoherentBeamEnabled = false;
