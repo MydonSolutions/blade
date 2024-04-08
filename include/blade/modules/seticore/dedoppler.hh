@@ -28,6 +28,9 @@ class BLADE_API Dedoppler : public Module {
         BOOL lastBeamIsIncoherent = false;
         BOOL searchIncoherentBeam = true;
 
+        std::vector<double> searchExclusionSubbandBottomsMHz;
+        std::vector<double> searchExclusionSubbandTopsMHz;
+
         std::string filepathPrefix;
         U64 telescopeId;
         std::string sourceName;

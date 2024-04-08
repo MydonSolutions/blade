@@ -61,6 +61,7 @@ typedef struct {
     F64 stampFrequencyMarginHz;
     BOOL phasorNegateDelays;
     U64 inputGuppiFileLimit;
+    std::string searchExclusionSubbandFilepath;
 } Config;
 
 }  // namespace Blade::CLI::Telecopes::ATA

@@ -13,6 +13,8 @@
 #include "blade/pipelines/generic/file_reader.hh"
 #include "blade/pipelines/generic/accumulator.hh"
 
+#include <sstream>
+
 using namespace indicators;
 
 namespace Blade::CLI::Telescopes::ATA {
@@ -24,6 +26,57 @@ inline const Result ModeBS(const Config& config) {
     using Channelize = Pipelines::Generic::ModeH<IT, CF32>;
     using Beamform = Pipelines::ATA::ModeB<CF32, F32>;
     using Search = Pipelines::Generic::ModeS<Blade::Pipelines::Generic::HitsFormat::SETICORE_STAMP>;
+
+    std::vector<double> searchExclusionSubbandBottomsMHz, searchExclusionSubbandTopsMHz;
+    if (config.searchExclusionSubbandFilepath.length() > 0) {
+        std::ifstream file(config.searchExclusionSubbandFilepath);
+        if (file.is_open()) {
+            std::string line;
+            size_t line_no = 0;
+            double subbandBottom;
+            std::vector<double>::iterator lowerBoundIndex;
+
+            while (std::getline(file, line)) {
+                std::istringstream iss(line);
+                std::string token, botToken, topToken;
+
+                while (std::getline(iss, token, ',')) {
+                    botToken = topToken;
+                    topToken = token;
+                }
+
+                try {
+                    subbandBottom = std::stod(botToken);
+                    lowerBoundIndex = std::lower_bound(searchExclusionSubbandBottomsMHz.begin(), searchExclusionSubbandBottomsMHz.end(), subbandBottom);
+                    lowerBoundIndex = searchExclusionSubbandBottomsMHz.insert(
+                        lowerBoundIndex,
+                        subbandBottom
+                    );
+                    lowerBoundIndex = searchExclusionSubbandTopsMHz.insert(
+                        searchExclusionSubbandTopsMHz.begin() + std::distance(searchExclusionSubbandBottomsMHz.begin(), lowerBoundIndex),
+                        std::stod(topToken)
+                    );
+                } 
+                catch (const std::invalid_argument& err) {
+                    // excuse the probable header row
+                    if (line_no > 0) {
+                        BL_ERROR("Failed to parse search-exclusion subband file: '{}'.", config.searchExclusionSubbandFilepath);
+                        BL_FATAL("Could not parse the last 2 fields as real numbers on line {}", line_no+1);
+                        BL_CHECK_THROW(Result::ASSERTION_ERROR);
+                    }
+                }
+                line_no += 1;
+            }
+            file.close();
+            BL_DEBUG("Read {} search-exclusion subbands.", searchExclusionSubbandBottomsMHz.size());
+            for (size_t i = 0; i < searchExclusionSubbandBottomsMHz.size(); i ++) {
+                BL_DEBUG("\t[{}, {}]", searchExclusionSubbandBottomsMHz.at(i)*1e-6, searchExclusionSubbandTopsMHz.at(i)*1e-6);
+            }
+        } else {
+            BL_FATAL("Unable to open search-exclusion subband file: '{}'.", config.searchExclusionSubbandFilepath);
+            BL_CHECK_THROW(Result::ASSERTION_ERROR);
+        }
+    }
 
     ArrayDimensions stepTailIncrementDims = {.A=1, .F=1, .T=1, .P=1};
 
@@ -172,6 +225,8 @@ inline const Result ModeBS(const Config& config) {
         .searchChannelBandwidthHz = reader.getChannelBandwidth() / config.preBeamformerChannelizerRate,
         .searchChannelTimespanS = config.preBeamformerChannelizerRate * config.integrationSize * reader.getChannelTimespan(),
         .searchOutputFilepathStem = config.outputFile,
+        .searchExclusionSubbandBottomsMHz = searchExclusionSubbandBottomsMHz,
+        .searchExclusionSubbandTopsMHz = searchExclusionSubbandTopsMHz,
 
         .produceDebugHits = config.produceDebugHits,
     };

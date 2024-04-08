@@ -96,6 +96,13 @@ const Result Dedoppler::process(const cudaStream_t& stream) {
     const auto beamElementStride = this->input.buf.size() / inputDims.numberOfAspects();
     size_t hits_after_last_beam = 0;
 
+    // search exclusion variables
+    double hitFrequencyStartMHz;
+    double hitFrequencyStopMHz;
+    double hitFrequencyHitSpanHz;
+    // std::vector<double>::iterator lowerBoundTopsIndex;
+    int exclusionSubbandIndex;
+
     if (this->config.produceDebugHits) {
         const double drift_rate_resolution = this->config.channelBandwidthHz / ((inputDims.numberOfTimeSamples()-1) * this->config.channelTimespanS);
         // the stamp.data list-field has some upper limit, try stay under that
@@ -215,10 +222,40 @@ const Result Dedoppler::process(const cudaStream_t& stream) {
         }
 
         for (const DedopplerHit& hit : beam_hits) {
+            hitFrequencyStartMHz = hit.frequency;
+            hitFrequencyStopMHz = hit.frequency;
+            hitFrequencyHitSpanHz = hit.drift_rate * hit.drift_steps;
+            if (hitFrequencyHitSpanHz >= 0) {
+                hitFrequencyStopMHz += hitFrequencyHitSpanHz;
+            }
+            else {
+                hitFrequencyStartMHz += hitFrequencyHitSpanHz;
+            }
+
+            // assuming exclusion-subbands are non-overlapping,
+            // only ommit the hit if is in a single exclusion-subband
+            auto lowerBoundTopsIndex = std::lower_bound(
+                config.searchExclusionSubbandTopsMHz.begin(), 
+                config.searchExclusionSubbandTopsMHz.end(),
+                hitFrequencyStopMHz
+            );
+            if (lowerBoundTopsIndex != config.searchExclusionSubbandTopsMHz.end()) {
+                exclusionSubbandIndex = std::distance(config.searchExclusionSubbandTopsMHz.begin(), lowerBoundTopsIndex);
+                if (config.searchExclusionSubbandBottomsMHz.at(exclusionSubbandIndex) <= hitFrequencyStartMHz) {
+                    BL_DEBUG(
+                        "Hit omitted, falling into exclusion-subband #{} [{}, {}]: {}",
+                        exclusionSubbandIndex,
+                        config.searchExclusionSubbandBottomsMHz.at(exclusionSubbandIndex),
+                        config.searchExclusionSubbandTopsMHz.at(exclusionSubbandIndex),
+                        hit.toString()
+                    );
+                    continue;
+                }
+            }
+
             BL_DEBUG("Hit: {}", hit.toString());
             hit_recorder->recordHit(hit, this->input.buf.data() + beam*beamElementStride);
         }
-
         hits_after_last_beam = this->output.hits.size();
     }
 

@@ -68,8 +68,8 @@ ATA<OT>::ATA(const typename Generic<OT>::Config& config,
     const auto coefficientNumberOfFrequencyChannels = config.antennaCoefficients.size() / (config.numberOfAntennas * config.numberOfPolarizations);
     
     if (coefficientNumberOfFrequencyChannels % coarseStepDims.numberOfFrequencyChannels() != 0) {
-        BL_FATAL("Number of antenna coefficient channels is not the expected size ({}), nor an integer multiple.", 
-                coefficientNumberOfFrequencyChannels, coarseStepDims.numberOfFrequencyChannels());
+        BL_FATAL("Number of antenna coefficient channels is not the expected size ({}), nor an integer multiple: {}.", 
+                coarseStepDims.numberOfFrequencyChannels(), coefficientNumberOfFrequencyChannels);
         BL_CHECK_THROW(Result::ERROR);
     }
 

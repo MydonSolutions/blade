@@ -7,8 +7,11 @@
 namespace Blade::Modules::Guppi {
 
 typedef struct {
-    I32 nants;
     I32 fenchan;
+    I32 obsnchan;
+    I32 nants;
+    I32 nchan;
+    F64 obs_bw_mhz;
     F64 chan_bw_mhz;
     F64 chan_timespan;
     I32 chan_start;
@@ -29,7 +32,11 @@ typedef struct {
 
 const U64 KEY_UINT64_SCHAN = GUPPI_RAW_KEY_UINT64_ID_LE('S','C','H','A','N',' ',' ',' ');
 const U64 KEY_UINT64_FENCHAN = GUPPI_RAW_KEY_UINT64_ID_LE('F','E','N','C','H','A','N',' ');
+const U64 KEY_UINT64_OBSNCHAN = GUPPI_RAW_KEY_UINT64_ID_LE('O','B','S','N','C','H','A','N');
+const U64 KEY_UINT64_NANTS = GUPPI_RAW_KEY_UINT64_ID_LE('N','A','N','T','S',' ',' ',' ');
+const U64 KEY_UINT64_NCHAN = GUPPI_RAW_KEY_UINT64_ID_LE('N','C','H','A','N',' ',' ',' ');
 const U64 KEY_UINT64_CHAN_BW = GUPPI_RAW_KEY_UINT64_ID_LE('C','H','A','N','_','B','W',' ');
+const U64 KEY_UINT64_OBSBW = GUPPI_RAW_KEY_UINT64_ID_LE('O','B','S','B','W',' ',' ',' ');
 const U64 KEY_UINT64_TBIN = GUPPI_RAW_KEY_UINT64_ID_LE('T','B','I','N',' ',' ',' ',' ');
 const U64 KEY_UINT64_OBSFREQ = GUPPI_RAW_KEY_UINT64_ID_LE('O','B','S','F','R','E','Q',' ');
 const U64 KEY_UINT64_SYNCTIME = GUPPI_RAW_KEY_UINT64_ID_LE('S','Y','N','C','T','I','M','E');
@@ -50,6 +57,14 @@ void guppiraw_parse_block_meta(const char* entry, void* block_meta) {
         hgeti4(entry, "SCHAN", &((guppiraw_block_meta_t*)block_meta)->chan_start);
     } else if (((U64*)entry)[0] == KEY_UINT64_FENCHAN) {
         hgeti4(entry, "FENCHAN", &((guppiraw_block_meta_t*)block_meta)->fenchan);
+    } else if (((U64*)entry)[0] == KEY_UINT64_OBSNCHAN) {
+        hgeti4(entry, "OBSNCHAN", &((guppiraw_block_meta_t*)block_meta)->obsnchan);
+    } else if (((U64*)entry)[0] == KEY_UINT64_NANTS) {
+        hgeti4(entry, "NANTS", &((guppiraw_block_meta_t*)block_meta)->nants);
+    } else if (((U64*)entry)[0] == KEY_UINT64_NCHAN) {
+        hgeti4(entry, "NCHAN", &((guppiraw_block_meta_t*)block_meta)->nchan);
+    } else if (((U64*)entry)[0] == KEY_UINT64_OBSBW) {
+        hgetr8(entry, "OBSBW", &((guppiraw_block_meta_t*)block_meta)->obs_bw_mhz);
     } else if (((U64*)entry)[0] == KEY_UINT64_CHAN_BW) {
         hgetr8(entry, "CHAN_BW", &((guppiraw_block_meta_t*)block_meta)->chan_bw_mhz);
     } else if (((U64*)entry)[0] == KEY_UINT64_TBIN) {
@@ -87,9 +102,21 @@ void guppiraw_parse_block_meta(const char* entry, void* block_meta) {
         if (((guppiraw_block_meta_t*)block_meta)->telescope_id[0] == '\0') {
             strcpy(((guppiraw_block_meta_t*)block_meta)->telescope_id, "Unknown");
         }
-        if (((guppiraw_block_meta_t*)block_meta)->chan_timespan == 0) {
+        if (((guppiraw_block_meta_t*)block_meta)->nants == 0) {
+            ((guppiraw_block_meta_t*)block_meta)->nants = 1;
+        }
+        if (((guppiraw_block_meta_t*)block_meta)->nchan == 0) {
+            ((guppiraw_block_meta_t*)block_meta)->nchan = ((guppiraw_block_meta_t*)block_meta)->obsnchan/((guppiraw_block_meta_t*)block_meta)->nants;
+        }
+        if (((guppiraw_block_meta_t*)block_meta)->chan_bw_mhz == 0) {
+            ((guppiraw_block_meta_t*)block_meta)->chan_bw_mhz = ((guppiraw_block_meta_t*)block_meta)->obs_bw_mhz/(((guppiraw_block_meta_t*)block_meta)->nchan);
+        }
+        if (((guppiraw_block_meta_t*)block_meta)->chan_timespan == 0.0 && ((guppiraw_block_meta_t*)block_meta)->chan_bw_mhz != 0) {
             ((guppiraw_block_meta_t*)block_meta)->chan_timespan = 1e-6 / abs(((guppiraw_block_meta_t*)block_meta)->chan_bw_mhz);
         }
+    } else if (guppiraw_header_entry_is_OPENER((U64*)entry)) {
+        BL_DEBUG("OPENER");
+        memset(block_meta, 0, sizeof(guppiraw_block_meta_t));
     }
 }
 

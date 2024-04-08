@@ -35,6 +35,20 @@ ModeS<HT>::ModeS(const Config& config)
     if (config.accumulateRate > 1) {
         BL_DEBUG("Accumulated Input Byte Size: {}", this->prebeamformerData.size_bytes());
     }
+    if (config.searchExclusionSubbandBottomsMHz.size() != config.searchExclusionSubbandTopsMHz.size()) {
+        BL_FATAL(
+            "Search exclusion subband vectors must have the same number of entries (Bottoms {} != {} Tops).",
+            config.searchExclusionSubbandBottomsMHz.size(),
+            config.searchExclusionSubbandTopsMHz.size()
+        );
+        BL_CHECK_THROW(Result::ASSERTION_ERROR);
+    }
+    if (config.searchExclusionSubbandBottomsMHz.size() > 0) {
+        BL_INFO("Search exclusion subbands (MHz):");
+        for (size_t i = 0; i < config.searchExclusionSubbandBottomsMHz.size(); i++) {
+            BL_INFO("\t[{}, {}]", config.searchExclusionSubbandBottomsMHz.at(i)*1e-6, config.searchExclusionSubbandTopsMHz.at(i)*1e-6);
+        }
+    }
 
     BL_DEBUG("Instantiating Dedoppler module.");
     F64 minimumDriftRate = config.searchMinimumDriftRate;
@@ -55,6 +69,9 @@ ModeS<HT>::ModeS(const Config& config)
         .coarseChannelRate = config.inputCoarseChannelRatio,
         .lastBeamIsIncoherent = config.inputLastBeamIsIncoherent,
         .searchIncoherentBeam = config.searchIncoherentBeam,
+
+        .searchExclusionSubbandBottomsMHz = config.searchExclusionSubbandBottomsMHz,
+        .searchExclusionSubbandTopsMHz = config.searchExclusionSubbandTopsMHz,
 
         // hits writer requirements -_-
         .filepathPrefix = config.searchOutputFilepathStem,

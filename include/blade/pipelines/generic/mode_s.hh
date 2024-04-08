@@ -65,6 +65,8 @@ class BLADE_API ModeS : public Pipeline {
         F64 searchChannelBandwidthHz;
         F64 searchChannelTimespanS;
         std::string searchOutputFilepathStem;
+        std::vector<double> searchExclusionSubbandBottomsMHz;
+        std::vector<double> searchExclusionSubbandTopsMHz;
 
         BOOL produceDebugHits = false;
 

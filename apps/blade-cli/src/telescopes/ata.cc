@@ -180,6 +180,12 @@ const Result CollectUserInput(int argc, char **argv, Config& config) {
         .add_option("--input-guppi-raw-limit", config.inputGuppiFileLimit,
                 "Limit the number of RAW files to process (0 for no limit).")
             ->default_val(0);
+    
+    // Read subband search-exclusion CSV filepath.
+    app
+        .add_option("-x,--search-exclusion-subband", config.searchExclusionSubbandFilepath, "CSV filepath to search-exclusion subbands. Subband bottom and top frequencies are the pen- and ultimate columns, respectively, given in MHz.")
+            ->capture_default_str()
+            ->run_callback_for_default();
 
     try {
         app.parse(argc, argv);
