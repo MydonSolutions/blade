@@ -199,6 +199,7 @@ const Result Dedoppler::process(const cudaStream_t& stream) {
             0 // seticore runs on the default stream
         ));
 
+        std::vector<DedopplerHit> beam_hits;
         dedopplerer.search(
             beamFilterbankBuffer,
             this->metadata,
@@ -207,13 +208,9 @@ const Result Dedoppler::process(const cudaStream_t& stream) {
             this->config.maximumDriftRate,
             this->config.minimumDriftRate,
             this->config.snrThreshold,
-            &this->output.hits
+            &beam_hits
         );
 
-        std::vector<DedopplerHit> beam_hits(
-            this->output.hits.begin() + hits_after_last_beam,
-            this->output.hits.end()
-        );
         if (this->config.lastBeamIsIncoherent) {
             dedopplerer.addIncoherentPower(
                 incohbeamFilterbankBuffer,
@@ -257,6 +254,7 @@ const Result Dedoppler::process(const cudaStream_t& stream) {
 
             BL_DEBUG("Hit spanning {}->{}: {}", hit.frequency, hit.frequency+(hit.drift_rate*hit.drift_steps*1e-6), hit.toString());
             hit_recorder->recordHit(hit, this->input.buf.data() + beam*beamElementStride);
+            this->output.hits.push_back(hit);
         }
         hits_after_last_beam = this->output.hits.size();
     }
