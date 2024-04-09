@@ -226,10 +226,10 @@ const Result Dedoppler::process(const cudaStream_t& stream) {
             hitFrequencyStopMHz = hit.frequency;
             hitFrequencyHitSpanHz = hit.drift_rate * hit.drift_steps;
             if (hitFrequencyHitSpanHz >= 0) {
-                hitFrequencyStopMHz += hitFrequencyHitSpanHz;
+                hitFrequencyStopMHz += hitFrequencyHitSpanHz*1e-6;
             }
             else {
-                hitFrequencyStartMHz += hitFrequencyHitSpanHz;
+                hitFrequencyStartMHz += hitFrequencyHitSpanHz*1e-6;
             }
 
             // assuming exclusion-subbands are non-overlapping,
@@ -243,7 +243,9 @@ const Result Dedoppler::process(const cudaStream_t& stream) {
                 exclusionSubbandIndex = std::distance(config.searchExclusionSubbandTopsMHz.begin(), lowerBoundTopsIndex);
                 if (config.searchExclusionSubbandBottomsMHz.at(exclusionSubbandIndex) <= hitFrequencyStartMHz) {
                     BL_DEBUG(
-                        "Hit omitted, falling into exclusion-subband #{} [{}, {}]: {}",
+                        "Hit spanning {}->{} omitted, falling into exclusion-subband #{} [{}, {}]: {}",
+                        hitFrequencyStartMHz,
+                        hitFrequencyStopMHz,
                         exclusionSubbandIndex,
                         config.searchExclusionSubbandBottomsMHz.at(exclusionSubbandIndex),
                         config.searchExclusionSubbandTopsMHz.at(exclusionSubbandIndex),
@@ -253,7 +255,7 @@ const Result Dedoppler::process(const cudaStream_t& stream) {
                 }
             }
 
-            BL_DEBUG("Hit: {}", hit.toString());
+            BL_DEBUG("Hit spanning {}->{}: {}", hit.frequency, hit.frequency+(hit.drift_rate*hit.drift_steps*1e-6), hit.toString());
             hit_recorder->recordHit(hit, this->input.buf.data() + beam*beamElementStride);
         }
         hits_after_last_beam = this->output.hits.size();
