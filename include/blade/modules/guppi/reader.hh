@@ -22,10 +22,12 @@ class BLADE_API Reader : public Module {
     struct Config {
         std::string filepath;
         U64 stepNumberOfTimeSamples;
+        U64 requiredMultipleOfTimeSamplesSteps = 1;
         U64 stepNumberOfFrequencyChannels;
-        U64 stepNumberOfAspects;
 
+        U64 numberOfTimeSampleStepsBeforeFrequencyChannelStep = 1;
         U64 blockSize = 512;
+        U64 numberOfFilesLimit = 0; // zero for no limit
     };
 
     constexpr const Config& getConfig() const {
@@ -43,10 +45,17 @@ class BLADE_API Reader : public Module {
         ArrayTensor<Device::CPU, OT> stepBuffer;
         Tensor<Device::CPU, F64> stepJulianDate;
         Tensor<Device::CPU, F64> stepDut1;
+        Tensor<Device::CPU, U64> stepFrequencyChannelOffset;
     };
 
     constexpr const ArrayTensor<Device::CPU, OT>& getStepOutputBuffer() const {
         return this->output.stepBuffer;
+    }
+
+    F64 getUnixDateOfLastReadBlock(const U64 timesamplesOffset = 0);
+
+    constexpr F64 getJulianDateOfLastReadBlock(const U64 timesamplesOffset = 0) {
+        return calc_julian_date_from_unix_sec(this->getUnixDateOfLastReadBlock(timesamplesOffset));
     }
 
     constexpr const Tensor<Device::CPU, F64>& getStepOutputJulianDate() const {
@@ -55,6 +64,10 @@ class BLADE_API Reader : public Module {
 
     constexpr const Tensor<Device::CPU, F64>& getStepOutputDut1() const {
         return this->output.stepDut1;
+    }
+
+    constexpr const Tensor<Device::CPU, U64>& getStepOutputFrequencyChannelOffset() const {
+        return this->output.stepFrequencyChannelOffset;
     }
 
     ArrayShape getTotalOutputBufferShape() const {
@@ -68,16 +81,30 @@ class BLADE_API Reader : public Module {
 
     ArrayShape getStepOutputBufferShape() const {
         return ArrayShape({
-            this->config.stepNumberOfAspects,
+            this->getDatashape()->n_aspect,
             this->config.stepNumberOfFrequencyChannels,
             this->config.stepNumberOfTimeSamples,
             this->getDatashape()->n_pol,
         });
     }
 
-    U64 getNumberOfSteps() {
-        return this->getTotalOutputBufferShape().size() / 
-               this->getStepOutputBufferShape().size();
+    const ArrayShape getNumberOfStepsInDimensions() const {
+        auto dimensionSteps = this->getTotalOutputBufferShape() / this->getStepOutputBufferShape();
+        auto timesamples = dimensionSteps.numberOfTimeSamples();
+        if (this->config.numberOfTimeSampleStepsBeforeFrequencyChannelStep > 0) {
+            timesamples -= dimensionSteps.numberOfTimeSamples() % this->config.numberOfTimeSampleStepsBeforeFrequencyChannelStep;
+        }
+        timesamples -= dimensionSteps.numberOfTimeSamples() % this->config.requiredMultipleOfTimeSamplesSteps;
+        return ArrayShape({
+            dimensionSteps.numberOfAspects(),
+            dimensionSteps.numberOfFrequencyChannels(),
+            timesamples,
+            dimensionSteps.numberOfPolarizations()
+        });
+    }
+
+    const U64 getNumberOfSteps() {
+        return this->getNumberOfStepsInDimensions().size();
     }
 
     // Taint Registers
@@ -97,10 +124,25 @@ class BLADE_API Reader : public Module {
 
     // Miscellaneous 
 
-    F64 getTotalBandwidth() const;
+    F64 getObservationBandwidth() const;
     F64 getChannelBandwidth() const;
+    F64 getChannelTimespan() const;
     U64 getChannelStartIndex() const;
-    F64 getObservationFrequency() const;
+    F64 getObservationCenterFrequency() const;
+    F64 getCenterFrequency() const;
+    F64 getObservationBottomFrequency() const;
+    F64 getBottomFrequency() const;
+    F64 getObservationTopFrequency() const;
+    F64 getTopFrequency() const;
+    F64 getBandwidth() const;
+    F64 getAzimuthAngle() const;
+    F64 getZenithAngle() const;
+    F64 getRightAscension() const;
+    F64 getDeclination() const;
+    F64 getPhaseRightAscension() const;
+    F64 getPhaseDeclination() const;
+    std::string getSourceName() const;
+    std::string getTelescopeName() const;
 
  private:
     // Variables 
@@ -109,10 +151,13 @@ class BLADE_API Reader : public Module {
     const Input input;
     Output output;
 
-    I32 lastread_block_index = -1;
-    U64 lastread_aspect_index;
-    U64 lastread_channel_index;
-    U64 lastread_time_index;
+    U64 lastread_channel_index = 0;
+    U64 lastread_block_index = 0;
+    U64 lastread_time_index = 0;
+
+    U64 current_time_sample_step = 0;
+    U64 checkpoint_block_index = 0;
+    U64 checkpoint_time_index = 0;
 
     guppiraw_iterate_info_t gr_iterate = {0};
 
