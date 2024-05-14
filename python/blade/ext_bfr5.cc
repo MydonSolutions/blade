@@ -14,9 +14,7 @@ void NB_SUBMODULE(auto& m, const auto& name) {
 
     nb::class_<typename Class::Config>(mod, "config")
         .def(nb::init<const std::string&,
-                      const U64&,
                       const U64&>(), "filepath"_a,
-                                     "channelizer_rate"_a,
                                      "block_size"_a = 512);
 
     nb::class_<typename Class::Input>(mod, "input");
@@ -28,12 +26,12 @@ void NB_SUBMODULE(auto& m, const auto& name) {
                                         "input"_a,
                                         "stream"_a)
         .def("get_config", &Class::getConfig, nb::rv_policy::reference)
-        .def("get_total_shape", &Class::getTotalShape)
+        .def("get_shape", &Class::getShape)
         .def("get_reference_position", &Class::getReferencePosition)
         .def("get_boresight_coordinates", &Class::getBoresightCoordinates)
         .def("get_antenna_positions", &Class::getAntennaPositions, nb::rv_policy::reference)
         .def("get_beam_coordinates", &Class::getBeamCoordinates, nb::rv_policy::reference)
-        .def("get_antenna_calibrations", &Class::getAntennaCalibrations, nb::rv_policy::reference)
+        .def("get_antenna_coefficients", &Class::getAntennaCoefficients, nb::rv_policy::reference)
         .def("__repr__", [](Class& obj){
             return bl::fmt::format("Bfr5Reader()");
         });

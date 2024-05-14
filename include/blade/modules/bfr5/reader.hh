@@ -20,7 +20,6 @@ class BLADE_API Reader : public Module {
 
     struct Config {
         std::string filepath;
-        U64 channelizerRate;
 
         U64 blockSize = 512;
     };
@@ -53,23 +52,26 @@ class BLADE_API Reader : public Module {
 
     explicit Reader(const Config& config, const Input& input,
                     const Stream& stream = {});
+    
+    // TODO: destructor
+    // ~Reader() { BFR5free_all(this->bfr5); };
 
     // Miscellaneous
 
-    // TODO: This is the data size, right?
-    ArrayShape getTotalShape() const {
-        return ArrayShape({
-            this->bfr5.dim_info.nbeams * this->bfr5.dim_info.nants,
+    PhasorShape getShape() const {
+        return PhasorShape({
+            this->bfr5.dim_info.nbeams,
+            this->bfr5.dim_info.nants,
             this->bfr5.dim_info.nchan,
             this->bfr5.dim_info.ntimes,
             this->bfr5.dim_info.npol,
         });
     }
 
-    constexpr LLA getReferencePosition() const {
+    LLA getReferencePosition() const {
         return {
-            .LON = this->bfr5.tel_info.longitude,
-            .LAT = this->bfr5.tel_info.latitude,
+            .LON = calc_rad_from_degree(this->bfr5.tel_info.longitude),
+            .LAT = calc_rad_from_degree(this->bfr5.tel_info.latitude),
             .ALT = this->bfr5.tel_info.altitude,
         };
     }
@@ -89,9 +91,7 @@ class BLADE_API Reader : public Module {
         return this->beamCoordinates;
     }
 
-    constexpr const ArrayTensor<Device::CPU, CF64>& getAntennaCalibrations() const {
-        return this->antennaCalibrations;
-    }
+    std::vector<CF64> getAntennaCoefficients(const U64& numberOfFrequencyChannels = 0, const U64& frequencyChannelStartIndex = 0);
 
  private:
     // Variables
@@ -105,16 +105,7 @@ class BLADE_API Reader : public Module {
     // TODO: Update from vector to ArrayTensor. 
     std::vector<XYZ> antennaPositions;
     std::vector<RA_DEC> beamCoordinates;
-    ArrayTensor<Device::CPU, CF64> antennaCalibrations;
-
-    const ArrayShape getAntennaCalibrationsShape() const{
-        return ArrayShape({
-            getTotalShape().numberOfAspects(),
-            getTotalShape().numberOfFrequencyChannels(), // * config.channelizerRate,
-            1,
-            getTotalShape().numberOfPolarizations(),
-        });
-    }
+    std::vector<std::string> beamSourceNames;
 };
 
 }  // namespace Blade::Modules
