@@ -21,10 +21,14 @@ void NB_SUBMODULE_READER(auto& m, const auto& name, const auto& typeName) {
                       const U64&,
                       const U64&,
                       const U64&,
+                      const U64&,
+                      const U64&,
                       const U64&>(), "filepath"_a,
                                      "step_number_of_time_samples"_a,
                                      "step_number_of_frequency_channels"_a,
-                                     "step_number_of_aspects"_a,
+                                     "required_multiple_of_time_sample_steps"_a = 1,
+                                     "number_of_time_sample_steps_before_frequency_channel_step"_a = 1,
+                                     "number_of_files_limit"_a = 0,
                                      "block_size"_a = 512);
 
     nb::class_<typename Class::Input>(mod, "input");

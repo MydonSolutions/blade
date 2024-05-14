@@ -22,12 +22,12 @@ class BLADE_API Reader : public Module {
     struct Config {
         std::string filepath;
         U64 stepNumberOfTimeSamples;
-        U64 requiredMultipleOfTimeSamplesSteps = 1;
         U64 stepNumberOfFrequencyChannels;
 
+        U64 requiredMultipleOfTimeSamplesSteps = 1;
         U64 numberOfTimeSampleStepsBeforeFrequencyChannelStep = 1;
-        U64 blockSize = 512;
         U64 numberOfFilesLimit = 0; // zero for no limit
+        U64 blockSize = 512;
     };
 
     constexpr const Config& getConfig() const {
