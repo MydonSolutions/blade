@@ -80,6 +80,10 @@ Reader::Reader(const Config& config,
     BL_INFO("Data Shape: {} -> {}", "N/A", shape);
 }
 
+Reader::~Reader() {
+    BFR5free_all(&this->bfr5); 
+}
+
 std::vector<CF64> Reader::getAntennaCoefficients(const U64& numberOfFrequencyChannels, const U64& frequencyChannelStartIndex) {
     // transpose from F,P,A to A,F,1,P
     std::vector<CF64> antennaCoefficients;

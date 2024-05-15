@@ -53,8 +53,7 @@ class BLADE_API Reader : public Module {
     explicit Reader(const Config& config, const Input& input,
                     const Stream& stream = {});
     
-    // TODO: destructor
-    // ~Reader() { BFR5free_all(this->bfr5); };
+    ~Reader();
 
     // Miscellaneous
 
