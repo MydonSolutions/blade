@@ -1,4 +1,4 @@
-import sys
+import sys, time
 import numpy as np
 import blade as bl
 
@@ -7,13 +7,13 @@ class Pipeline:
     def __init__(self, in_shape, out_shape, config):
         self.input.buf = bl.array_tensor(in_shape, dtype=bl.cf32)
 
-        self.module.gather = bl.module(bl.gather, config, self.input.buf)
+        self.module.gatherhostside = bl.module(bl.gatherhostside, config, self.input.buf)
 
     def transfer_in(self, buf):
         self.copy(self.input.buf, buf)
 
     def transfer_out(self, buf):
-        self.copy(buf, self.module.gather.get_output())
+        self.copy(buf, self.module.gatherhostside.get_output())
 
 
 def test(A, F, T, P, Axis, Multiplier):
@@ -33,8 +33,10 @@ def test(A, F, T, P, Axis, Multiplier):
 
     bl_input = host_input.as_numpy()
     bl_output = host_output.as_numpy()
-
-    np.copyto(bl_input, np.random.random(size=in_shape) + 1j*np.random.random(size=in_shape))
+    
+    
+    rng = np.random.default_rng(31315926535)
+    np.copyto(bl_input, rng.random(size=in_shape) + 1j*rng.random(size=in_shape))
 
     #
     # Blade Implementation
@@ -44,6 +46,7 @@ def test(A, F, T, P, Axis, Multiplier):
     while True:
         if pipeline(host_input, host_output):
             break
+        pipeline.synchronize()
 
     #
     # Python Implementation
@@ -55,7 +58,6 @@ def test(A, F, T, P, Axis, Multiplier):
     #
     # Compare Results
     #
-
     assert np.allclose(bl_output, py_output, rtol=0.01)
     print("Test successfully completed!")
 

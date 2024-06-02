@@ -49,6 +49,9 @@
 
 #ifdef BLADE_MODULE_PERMUTATION
 #include "blade/modules/permutation.hh"
+
+#ifdef BLADE_MODULE_GATHERHOSTSIDE
+#include "blade/modules/gatherhostside.hh"
 #endif
 
 #endif

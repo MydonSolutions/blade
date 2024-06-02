@@ -149,7 +149,7 @@ static Result Copy2D(Vector<Device::CUDA, DType, Dims>& dst,
                      const U64& height,
                      const Stream& stream = {}) {
     return Copy2D(dst, dstPitch, dstPad, src, srcPitch, srcPad, 
-        width, height, cudaMemcpyDeviceToHost, stream);
+        width, height, cudaMemcpyDeviceToDevice, stream);
 }
 
 template<typename DType, typename SType, typename Dims>
@@ -163,7 +163,7 @@ static Result Copy2D(Vector<Device::CUDA, DType, Dims>& dst,
                      const U64& height,
                      const Stream& stream = {}) {
     return Copy2D(dst, dstPitch, dstPad, src, srcPitch, srcPad, 
-        width, height, cudaMemcpyDeviceToHost, stream);
+        width, height, cudaMemcpyHostToDevice, stream);
 }
 
 template<typename DType, typename SType, typename Dims>

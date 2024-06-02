@@ -12,5 +12,6 @@ subdir('duplicate')
 subdir('guppi')
 subdir('bfr5')
 subdir('seticore')
+subdir('gatherhostside')
 
 summary(sum_lst, section: 'Modules', bool_yn: true)
