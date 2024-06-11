@@ -43,8 +43,16 @@ class BLADE_API Plan {
 
     static void Dequeue(auto& runner, U64* id) {
         // Dequeue job from runner.
-        if (!runner->dequeue(id)) {
-            BL_CHECK_THROW(Result::PLAN_SKIP_NO_DEQUEUE);
+        Result result = runner->dequeue(id);
+        switch (result) {
+            case Result::EXHAUSTED:
+                BL_CHECK_THROW(Result::PLAN_SKIP_NO_DEQUEUE);
+            case Result::ERROR:
+                BL_CHECK_THROW(Result::PLAN_SKIP_NO_DEQUEUE);
+            case Result::SUCCESS:
+                return;
+            default:
+                BL_CHECK_THROW(result);
         }
     }
 
@@ -106,6 +114,42 @@ class BLADE_API Plan {
                             auto& pipeline) {
         // Transfer data to the vector.
         BL_CHECK_THROW(Memory::Copy(dst, src, pipeline.getCudaStream()));
+    }
+
+    // TransferOut(3) is used to transfer output data from one pipeline to a vector.
+    template<Device SDev, typename SType, Device DDev, typename DType>
+    static void TransferOutAsATPFrev(ArrayTensor<SDev, SType>& dst, 
+                                  const ArrayTensor<DDev, DType>& src, 
+                                  auto& pipeline) {
+
+        // Transfer data to the vector:
+        // from A F T P
+        // to   A T P F (F is reversed)
+        const auto dims = src.dims();
+        const U64 numberOfTimePolarizationSamples = dims.numberOfTimeSamples()*dims.numberOfPolarizations();
+        const U64 numberOfAspects = dims.numberOfAspects();
+        const U64 numberOfFrequencyChannels = dims.numberOfFrequencyChannels();
+        
+        for(U64 a = 0; a < numberOfAspects; a++) {
+            const U64 aspectDestinationTerm = a*numberOfTimePolarizationSamples*numberOfFrequencyChannels;
+            for(U64 f = 0; f < numberOfFrequencyChannels; f++) {
+                const U64 aspectChannelSourceFactor = (a*numberOfFrequencyChannels + f)*numberOfTimePolarizationSamples;
+                const U64 aspectChannelDestinationFactor = aspectDestinationTerm + (numberOfFrequencyChannels-1 - f);
+                BL_CHECK_THROW(
+                    Memory::Copy2D(
+                        dst,
+                        numberOfFrequencyChannels*sizeof(DType), // dstPitch
+                        aspectChannelDestinationFactor*sizeof(DType), // dstOffset 
+                        src,
+                        1*sizeof(SType), // srcPitch
+                        aspectChannelSourceFactor*sizeof(SType), // srcOffset
+                        sizeof(SType),
+                        numberOfTimePolarizationSamples,
+                        pipeline.getCudaStream()
+                    )
+                );
+            }
+        }
     }
 
     // TransferOut(3, ...) is used to transfer output data from one pipeline to another.

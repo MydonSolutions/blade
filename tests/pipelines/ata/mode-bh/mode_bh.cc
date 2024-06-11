@@ -243,10 +243,16 @@ void blade_ata_bh_compute_step() {
     });
 
     // Dequeue last runner job and recycle output buffer.
-    if (ModeH->dequeue(&callbackStep)) {
+    Result result = ModeH->dequeue(&callbackStep);
+    if (result == Result::SUCCESS){
         const auto& recycleBuffer = State.OutputPointerMap[callbackStep];
         State.Callbacks.OutputBufferReady(State.UserData, recycleBuffer);
         State.OutputPointerMap.erase(callbackStep);
+    }
+    else if (result == Result::EXHAUSTED){
+    }
+    else {
+        assert(0);
     }
 
     // Prevent memory clobber inside spin-loop.

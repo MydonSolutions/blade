@@ -135,22 +135,24 @@ class BLADE_API Runner {
         return true;
     }
 
-    bool dequeue(U64* id) {
+    const Result dequeue(U64* id) {
         // Return if there are no jobs.
         if (jobs.size() == 0) {
-            return false;
+            return Result::EXHAUSTED;
         }
 
         const auto& job = jobs.front();
 
         // Synchronize front if all workers have jobs.
         if (jobs.size() == workers.size()) {
-            job.worker->synchronize();
+            // BL_WARN("Synchronising");
+            BL_CHECK(job.worker->synchronize());
         }
 
         // Return if front isn't synchronized.
         if (!job.worker->isSynchronized()) {
-            return false;
+            // BL_WARN("Not synchronised");
+            return Result::ERROR;
         }
 
         if (id != nullptr) {
@@ -159,7 +161,7 @@ class BLADE_API Runner {
 
         jobs.pop_front();
 
-        return true;
+        return Result::SUCCESS;
     }
 
  private:

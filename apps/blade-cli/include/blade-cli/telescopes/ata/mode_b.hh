@@ -159,11 +159,19 @@ inline const Result ModeB(const Config& config) {
         });
 
         // Try to dequeue job from writer runner.
-        if (writerRunner->dequeue(&callbackStep)) {
+        Result result = writerRunner->dequeue(&callbackStep);
+        if (result == Result::SUCCESS){
             if ((callbackStep + 1) == reader.getNumberOfSteps()) {
                 break;
             }
-        }    
+        }
+        else if (result == Result::EXHAUSTED){
+            //
+        }
+        else {
+            assert(0);
+        }
+
     }
 
     // Gracefully destroy runners. 

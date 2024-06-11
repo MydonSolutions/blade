@@ -152,5 +152,13 @@ bool blade_ata_b_enqueue(void* input_ptr, void* output_ptr, U64 id) {
 
 bool blade_ata_b_dequeue(U64* id) {
     assert(runner);
-    return runner->dequeue(id);
+    switch (runner->dequeue(id)) {
+        case Result::EXHAUSTED:
+            return false;
+        case Result::SUCCESS:
+            return true;
+        default:
+            assert(0);
+            return false;
+    }
 }
