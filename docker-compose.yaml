@@ -1,0 +1,24 @@
+services:
+  blade_py:
+    build:
+      context: .
+    volumes:
+      - ./src:/blade/src
+      - ./include:/blade/include
+      - ./benchmarks:/blade/benchmarks
+      - ./examples:/blade/examples
+      - ./kernels:/blade/kernels
+      - ./meson:/blade/meson
+      - ./python:/blade/python
+      - ./subprojects:/blade/subprojects
+      - ./tests:/blade/tests
+      - ./meson.build:/blade/meson.build
+    # command: /usr/bin/python3 /blade/examples/pipeline-python/pipeline_sync.py
+    command: /bin/bash
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]

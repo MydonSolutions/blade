@@ -53,7 +53,7 @@ class BLADE_API Dedoppler : public Module {
     // Input
 
     struct Input {
-        const ArrayTensor<Device::CPU, F32>& buf;
+        const ArrayTensor<Device::CPU, F32>& bufATPF;
         const Tensor<Device::CPU, U64>& coarseFrequencyChannelOffset;
         const Tensor<Device::CPU, F64>& julianDate;
     };
@@ -76,9 +76,19 @@ class BLADE_API Dedoppler : public Module {
         return this->output.hits;
     }
 
+    // Taint Registers
+
+    constexpr Taint getTaint() const {
+        return Taint::CONSUMER|Taint::PRODUCER; 
+    }
+
+    std::string name() const {
+        return "Seticore Dedoppler";
+    }
+
     // Constructor & Processing
 
-    explicit Dedoppler(const Config& config, const Input& input);
+    explicit Dedoppler(const Config& config, const Input& input, const Stream& stream = {});
     Result process(const cudaStream_t& stream = 0);
 
     private:
@@ -94,6 +104,16 @@ class BLADE_API Dedoppler : public Module {
     Dedopplerer dedopplerer;
     FilterbankMetadata metadata;
     unique_ptr<HitFileWriter> hit_recorder;
+
+    const ArrayShape getInputBufferShape() {
+        ArrayShape::Type shape = this->input.bufATPF.shape();
+        // Correct ATPF buffer shape
+        auto temp = shape[1];
+        shape[1] = shape[2]; // aTpf <- afTp 
+        shape[2] = shape[3]; // atPf <- aftP 
+        shape[3] = temp; // atpF <- aFtp
+        return shape;
+    }
 };
 
 } // namespace Blade::Modules::Seticore

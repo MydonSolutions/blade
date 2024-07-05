@@ -52,14 +52,14 @@ class BLADE_API HitsStampWriter : public Module {
     // Input
 
     struct Input {
-        const ArrayTensor<Device::CPU, IT>& buffer;
+        const ArrayTensor<Device::CPU, IT>& bufferTFPA;
         std::vector<DedopplerHit>& hits;
         const Tensor<Device::CPU, F64>& frequencyOfFirstChannelHz;
         const Tensor<Device::CPU, F64>& julianDateStart;
     };
 
-    constexpr const ArrayTensor<Device::CPU, IT>& getInputBuffer() const {
-        return this->input.buffer;
+    constexpr const ArrayTensor<Device::CPU, IT>& getInputBufferTFPA() const {
+        return this->input.bufferTFPA;
     }
 
     constexpr const Tensor<Device::CPU, F64>& getInputFrequencyOfFirstChannelHz() const {
@@ -75,9 +75,19 @@ class BLADE_API HitsStampWriter : public Module {
     struct Output {
     };
 
+    // Taint Registers
+
+    constexpr Taint getTaint() const {
+        return Taint::CONSUMER; 
+    }
+
+    std::string name() const {
+        return "Seticore Stamps Writer";
+    }
+
     // Constructor & Processing
 
-    explicit HitsStampWriter(const Config& config, const Input& input);
+    explicit HitsStampWriter(const Config& config, const Input& input, const Stream& stream = {});
     ~HitsStampWriter();
     
     Result process(const cudaStream_t& stream = 0);

@@ -3,5 +3,6 @@
 
 #include "blade/bundles/ata/base.hh"
 #include "blade/bundles/generic/base.hh"
+#include "blade/bundles/vla/base.hh"
 
 #endif

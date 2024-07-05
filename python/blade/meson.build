@@ -246,6 +246,18 @@ if (cfg_lst.get('BLADE_BUNDLE_GENERIC_MODE_H', false))
     )
 endif
 
+if (cfg_lst.get('BLADE_BUNDLE_VLA_MODE_S', false))
+    py.extension_module(
+        '_modes_impl',
+        sources: 'ext_modes.cc',
+        include_directories: inc_lst,
+        dependencies: deps + dep_lst,
+        link_with: lib_blade,
+        install: true,
+        install_dir: py_install_path,
+    )
+endif
+
 if cfg_lst.get('BLADE_MODULE_GATHERHOSTSIDE', false)
     py.extension_module(
         '_gatherhostside_impl',

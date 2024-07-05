@@ -6,13 +6,13 @@
 
 namespace Blade::Modules::Seticore {
 
-Dedoppler::Dedoppler(const Config& config, const Input& input)
+Dedoppler::Dedoppler(const Config& config, const Input& input, const Stream& stream)
         : Module(dedoppler_program),
           config(config),
           input(input),
           dedopplerer(
-            input.buf.shape().numberOfTimeSamples(),
-            input.buf.shape().numberOfFrequencyChannels(),
+            getInputBufferShape().numberOfTimeSamples(),
+            getInputBufferShape().numberOfFrequencyChannels(),
             1e-6 * this->config.channelBandwidthHz,
             this->config.channelTimespanS,
             config.mitigateDcSpike
@@ -25,8 +25,8 @@ Dedoppler::Dedoppler(const Config& config, const Input& input)
     this->metadata.tstart = 0.0; // from MJD, dynamically set
     this->metadata.src_raj = this->config.phaseCenter.RA * 12.0 / BL_PHYSICAL_CONSTANT_PI; // hours
     this->metadata.src_dej = this->config.phaseCenter.DEC * 180.0 / BL_PHYSICAL_CONSTANT_PI; // degrees
-    this->metadata.num_timesteps = input.buf.shape().numberOfTimeSamples();
-    this->metadata.num_channels = input.buf.shape().numberOfFrequencyChannels();
+    this->metadata.num_timesteps = getInputBufferShape().numberOfTimeSamples();
+    this->metadata.num_channels = getInputBufferShape().numberOfFrequencyChannels();
     this->metadata.telescope_id = this->config.telescopeId;
     this->metadata.coarse_channel_size = this->config.coarseChannelRate;
     this->metadata.num_coarse_channels = metadata.num_channels / metadata.coarse_channel_size;
@@ -45,7 +45,7 @@ Dedoppler::Dedoppler(const Config& config, const Input& input)
     hfw->verbose = false;
     hit_recorder.reset(hfw);
 
-    const auto inputShape = this->input.buf.shape();
+    const auto inputShape = this->getInputBufferShape();
     // Search buffer is reduce to a single aspect
     this->searchBuffer = ArrayTensor<Device::CUDA, F32>({
         1,
@@ -75,7 +75,7 @@ Dedoppler::Dedoppler(const Config& config, const Input& input)
         BL_INFO("SNR Threshold: {}", this->config.snrThreshold);
     }
 
-    const auto t = input.buf.shape().numberOfTimeSamples();
+    const auto t = getInputBufferShape().numberOfTimeSamples();
     const auto t_previousPowerOf2 = t == 0 ? 0 : (0x80000000 >> __builtin_clz(t));
     if (t != t_previousPowerOf2) {
         BL_FATAL("Dedoppler must be provided a power of 2 timesamples!");
@@ -85,15 +85,15 @@ Dedoppler::Dedoppler(const Config& config, const Input& input)
 
 Result Dedoppler::process(const cudaStream_t& stream) {
     this->output.hits.clear();
-    const auto inputDims = this->input.buf.shape();
+    const auto inputDims = this->getInputBufferShape();
     
     this->metadata.tstart = this->input.julianDate[0] - 2400000.5; // from JD to MJD
     
     const auto skipLastBeam = this->config.lastBeamIsIncoherent & (!this->config.searchIncoherentBeam);
     const auto beamsToSearch = inputDims.numberOfAspects() - (skipLastBeam ? 1 : 0);
 
-    const auto beamByteStride = this->input.buf.size_bytes() / inputDims.numberOfAspects();
-    const auto beamElementStride = this->input.buf.size() / inputDims.numberOfAspects();
+    const auto beamByteStride = this->input.bufATPF.size_bytes() / inputDims.numberOfAspects();
+    const auto beamElementStride = this->input.bufATPF.size() / inputDims.numberOfAspects();
     size_t hits_after_last_beam = 0;
 
     // search exclusion variables
@@ -131,11 +131,11 @@ Result Dedoppler::process(const cudaStream_t& stream) {
                 ));
             }
 
-            BL_DEBUG("Beamformed data #{}: {}", beam, this->input.buf.data()[beam*beamElementStride]);
+            BL_DEBUG("Beamformed data #{}: {}", beam, this->input.bufATPF.data()[beam*beamElementStride]);
             for (size_t i = hits_after_last_beam; i < this->output.hits.size(); i++) {
                 const DedopplerHit& hit = this->output.hits[i];
                 BL_DEBUG("Hit: {}", hit.toString());
-                hit_recorder->recordHit(hit, this->input.buf.data() + beam*beamElementStride);
+                hit_recorder->recordHit(hit, this->input.bufATPF.data() + beam*beamElementStride);
             }
 
             hits_after_last_beam = this->output.hits.size();
@@ -169,7 +169,7 @@ Result Dedoppler::process(const cudaStream_t& stream) {
             beamByteStride,
             0,
             
-            this->input.buf,
+            this->input.bufATPF,
             beamByteStride,
             (inputDims.numberOfAspects()-1)*beamByteStride,
 
@@ -190,7 +190,7 @@ Result Dedoppler::process(const cudaStream_t& stream) {
             beamByteStride,
             0,
             
-            this->input.buf,
+            this->input.bufATPF,
             beamByteStride,
             beam*beamByteStride,
 
@@ -255,7 +255,7 @@ Result Dedoppler::process(const cudaStream_t& stream) {
             }
 
             BL_DEBUG("Hit spanning {}->{}: {}", hit.frequency, hit.frequency+(hit.drift_rate*hit.drift_steps*1e-6), hit.toString());
-            hit_recorder->recordHit(hit, this->input.buf.data() + beam*beamElementStride);
+            hit_recorder->recordHit(hit, this->input.bufATPF.data() + beam*beamElementStride);
             this->output.hits.push_back(hit);
         }
         hits_after_last_beam = this->output.hits.size();

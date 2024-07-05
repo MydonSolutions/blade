@@ -24,6 +24,7 @@ if py.found()
             'ext_mem.cc',
             'ext_modeb.cc',
             'ext_modeh.cc',
+            'ext_modes.cc',
             'ext_permutation.cc',
             'ext_phasor.cc',
             'ext_pipeline.cc',

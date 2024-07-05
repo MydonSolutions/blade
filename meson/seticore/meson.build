@@ -5,7 +5,8 @@ if subproject('seticore').found()
     seticore_subproj = subproject(
         'seticore',
         default_options: [
-            'default_library='+get_option('default_library')
+            'default_library='+get_option('default_library'),
+            'buildtype='+get_option('buildtype')
         ]
     )
 

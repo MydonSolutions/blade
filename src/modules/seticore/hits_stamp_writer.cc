@@ -7,7 +7,7 @@
 namespace Blade::Modules::Seticore {
 
 template<typename IT>
-HitsStampWriter<IT>::HitsStampWriter(const Config& config, const Input& input)
+HitsStampWriter<IT>::HitsStampWriter(const Config& config, const Input& input, const Stream& stream)
         : Module(hits_writer_program),
           config(config),
           input(input),
@@ -17,7 +17,7 @@ HitsStampWriter<IT>::HitsStampWriter(const Config& config, const Input& input)
 
     // Print configuration information.
     BL_INFO("Type: {} -> {}", TypeInfo<IT>::name, "N/A");
-    BL_INFO("Shape: {} -> {}", getInputBuffer().shape(), "N/A");
+    BL_INFO("Shape: {} -> {}", getInputBufferTFPA().shape(), "N/A");
     BL_INFO("Output File Path: {}", config.filepathPrefix);
 }
 
@@ -37,7 +37,7 @@ Result HitsStampWriter<IT>::process(const cudaStream_t& stream) {
         return Result::SUCCESS;
     }
 
-    const auto inputShape = getInputBuffer().shape();
+    const auto inputShape = getInputBufferTFPA().shape();
 
     int hitStampFrequencyMargin = 1;
     if (this->config.stampFrequencyMarginHz <= 0.0) {
@@ -146,27 +146,19 @@ Result HitsStampWriter<IT>::process(const cudaStream_t& stream) {
         stamp.initData(2 * regionOfInterestDims.size());
         auto data = stamp.getData();
 
-        // AFTP -> TFPA
-        for (int a = 0; a < (int) regionOfInterestDims.numberOfAspects(); a++) {
-            for (int f = 0; f < (int) regionOfInterestDims.numberOfFrequencyChannels(); f++) {
-                for (int t = 0; t < (int) regionOfInterestDims.numberOfTimeSamples(); t++) {
-                    for (int p = 0; p < (int) regionOfInterestDims.numberOfPolarizations(); p++) {
-                        const auto tfpa_index = (
-                            ((
-                            t*regionOfInterestDims.numberOfFrequencyChannels() + f
-                            )*regionOfInterestDims.numberOfPolarizations() + p
-                            )*regionOfInterestDims.numberOfAspects() + a
-                        );
-                        const auto value = getInputBuffer().data()[
-                            ((
-                            a*inputShape.numberOfFrequencyChannels() + f + first_channel
-                            )*inputShape.numberOfTimeSamples() + t
-                            )*inputShape.numberOfPolarizations() + p
-                        ];
-                        data.set(tfpa_index*2 + 0, value.real());
-                        data.set(tfpa_index*2 + 1, value.imag());
-                    }
-                }
+        // TFPA -> TFPA
+        const auto input_t_stride = inputShape.numberOfFrequencyChannels()*inputShape.numberOfPolarizations()*inputShape.numberOfAspects();
+        const auto input_channel_offset = first_channel*inputShape.numberOfPolarizations()*inputShape.numberOfAspects();
+        const auto roi_fpa_length = regionOfInterestDims.size()/regionOfInterestDims.numberOfTimeSamples();
+        size_t i = 0;
+        for (int t = 0; t < (int) regionOfInterestDims.numberOfTimeSamples(); t++) {
+            for (int fpa = 0; fpa < (int) roi_fpa_length; fpa++) {
+                const auto value = getInputBufferTFPA().data()[
+                    t*input_t_stride + input_channel_offset + fpa
+                ];
+                data.set(i, value.real());
+                data.set(i + 1, value.imag());
+                i += 2;
             }
         }
 

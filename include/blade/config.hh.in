@@ -12,6 +12,7 @@
 #mesondefine BLADE_MODULE_GATHER
 #mesondefine BLADE_MODULE_DUPLICATE
 #mesondefine BLADE_MODULE_PERMUTATION
+#mesondefine BLADE_MODULE_SETICORE
 #mesondefine BLADE_MODULE_GATHERHOSTSIDE
 
 // ATA Specific Modules
@@ -26,6 +27,9 @@
 
 // ATA Pipelines
 #mesondefine BLADE_BUNDLE_ATA_MODE_B
+
+// VLA Pipelines
+#mesondefine BLADE_BUNDLE_VLA_MODE_S
 
 // Generic Pipelines
 #mesondefine BLADE_BUNDLE_GENERIC_MODE_H

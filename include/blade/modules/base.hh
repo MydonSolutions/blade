@@ -49,6 +49,11 @@
 
 #ifdef BLADE_MODULE_PERMUTATION
 #include "blade/modules/permutation.hh"
+#endif
+
+#ifdef BLADE_MODULE_SETICORE
+#include "blade/modules/seticore/base.hh"
+#endif
 
 #ifdef BLADE_MODULE_GATHERHOSTSIDE
 #include "blade/modules/gatherhostside.hh"

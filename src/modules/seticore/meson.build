@@ -21,6 +21,6 @@ if all_deps_found
     ])
 endif
 
-sum_lst += {'Seticore': all_deps_found}
+sum_lst += {'[GEN] Seticore': all_deps_found}
 
 cfg_lst.set('BLADE_MODULE_SETICORE', all_deps_found)
